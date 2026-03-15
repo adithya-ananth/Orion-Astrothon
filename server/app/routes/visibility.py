@@ -38,7 +38,7 @@ async def get_score(lat: float = Query(...), lon: float = Query(...)):
                 kp_val = float(last_row[1])
             except (IndexError, ValueError):
                 pass
-        
+
         photography_settings = photography_service.get_recommended_settings(kp_val)
 
         cloud_data = await weather_service.fetch_cloud_cover(lat, lon)

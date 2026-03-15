@@ -120,7 +120,7 @@ function OvationOverlay({ coordinates }) {
     if (!coordinates || coordinates.length === 0) return;
 
     const dataUrl = renderOvationImage(coordinates);
-    
+
     // Bounds for center, left (-360), and right (+360) copies
     const boundsList = [
       [[-90, -180], [90, 180]],       // Center
@@ -131,7 +131,7 @@ function OvationOverlay({ coordinates }) {
     if (overlaysRef.current.length > 0) {
       overlaysRef.current.forEach(layer => layer.setUrl(dataUrl));
     } else {
-      overlaysRef.current = boundsList.map(bounds => 
+      overlaysRef.current = boundsList.map(bounds =>
         L.imageOverlay(dataUrl, bounds, {
           opacity: 0.85,
           interactive: false,
@@ -212,9 +212,9 @@ export default function AuroraMap({ lat, lon }) {
         zoomControl={true}
         attributionControl={true}
       >
-        <TileLayer 
-          url={DARK_TILES} 
-          attribution={TILE_ATTR} 
+        <TileLayer
+          url={DARK_TILES}
+          attribution={TILE_ATTR}
           noWrap={false} // Allow tiles to wrap naturally
         />
 
