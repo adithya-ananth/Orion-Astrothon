@@ -39,6 +39,7 @@ A real-time, hyper-local aurora forecasting and visualization platform that brid
 - Solar wind speed alert: fires at v > 500 km/s
 - OVATION reliability flag: when |dBz/dt| > 2 nT/min, OVATION data is flagged as potentially unreliable
 - Magnetic midnight window per location as daily optimal viewing schedule
+- **Email notification system**: subscribe with location + email + score threshold; background loop checks every 5 minutes and sends email on first breach with anti-spam flag logic (no duplicate emails until score drops and re-breaches)
 
 ### Stretch Goals
 - **Photography Settings Advisor** — ISO, aperture, shutter recommendations based on Kp level + aurora color prediction (Kp-dependent emission line)
@@ -68,11 +69,11 @@ A real-time, hyper-local aurora forecasting and visualization platform that brid
 │  │ Service  │ │ Service     │ │ Service           │ │
 │  │ (polling)│ │ (scoring)   │ │ (Newell, dBz/dt)  │ │
 │  └─────┬────┘ └──────┬──────┘ └────────┬──────────┘ │
-│        │       ┌──────▼──────┐          │            │
-│        │       │ Weather     │          │            │
-│        │       │ Service     │          │            │
-│        │       │ (Open-Meteo)│          │            │
-│        │       └─────────────┘          │            │
+│        │       ┌──────▼──────┐  ┌──────▼──────────┐ │
+│        │       │ Weather     │  │ Notification    │ │
+│        │       │ Service     │  │ Service (SMTP)  │ │
+│        │       │ (Open-Meteo)│  │ (email alerts)  │ │
+│        │       └─────────────┘  └─────────────────┘ │
 └────────┼────────────────────────────────┼────────────┘
          │                                │
     NOAA SWPC                        Astronomical
@@ -94,6 +95,17 @@ cd server
 pip install -r requirements.txt
 python -m uvicorn app.main:app --host 0.0.0.0 --port 5000   # Starts on port 5000
 ```
+
+#### Email Notifications (optional)
+Set SMTP environment variables to enable email delivery:
+```bash
+export SMTP_HOST=smtp.gmail.com
+export SMTP_PORT=587
+export SMTP_USER=you@gmail.com
+export SMTP_PASS=your-app-password
+export SMTP_FROM=you@gmail.com
+```
+If SMTP is not configured, subscriptions are still tracked but emails are silently skipped.
 
 ### Frontend
 ```bash
@@ -128,6 +140,9 @@ npm run build    # Creates optimized static build in client/build/
 | `/api/alerts/configure` | POST | Save alert config |
 | `/api/alerts/check?lat=X&lon=Y` | GET | Check alert conditions for location |
 | `/api/photography/settings?kp=X` | GET | Camera settings recommendation |
+| `/api/notifications/subscribe` | POST | Subscribe to email alerts (body: lat, lon, email, threshold) |
+| `/api/notifications/unsubscribe/{id}` | DELETE | Remove notification subscription |
+| `/api/notifications/subscribers` | GET | List all notification subscribers |
 
 ---
 
@@ -163,7 +178,7 @@ cloud_score = 100 - weighted_pct
 ```bash
 cd server
 pip install -r requirements.txt
-python -m pytest tests/ -v    # Runs 85 unit tests
+python -m pytest tests/ -v    # Runs 99 unit tests
 ```
 
 Tests cover:
@@ -181,6 +196,8 @@ Tests cover:
 - VIIRS-based Bortle class estimation (urban vs. rural)
 - Aurora color prediction by Kp level
 - Photography settings recommendations
+- Email notification subscribe/unsubscribe
+- Anti-spam flag cycle (breach → notify → skip → drop → reset → breach → notify)
 
 ---
 

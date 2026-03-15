@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
+import { subscribeNotifications } from '../utils/api';
+import useLocation from '../hooks/useLocation';
 
 export default function AlertConfig() {
   const { alertConfig, setAlertConfig } = useAppContext();
+  const { lat, lon } = useLocation();
+  const [email, setEmail] = useState('');
+  const [emailStatus, setEmailStatus] = useState(null); // null | 'sending' | 'subscribed' | 'error'
 
   const handleToggle = (key) => {
     setAlertConfig((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleEmailSubscribe = async () => {
+    if (!email || !email.includes('@')) return;
+    setEmailStatus('sending');
+    try {
+      await subscribeNotifications(lat, lon, email, alertConfig.scoreThreshold);
+      setEmailStatus('subscribed');
+    } catch {
+      setEmailStatus('error');
+    }
   };
 
   return (
@@ -39,6 +55,57 @@ export default function AlertConfig() {
         />
         <span className="config-desc">
           Alert when visibility score exceeds this value
+        </span>
+      </div>
+
+      {/* Email notification subscription */}
+      <div className="config-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+        <span className="config-label">Email Notifications</span>
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailStatus) setEmailStatus(null);
+            }}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              fontSize: 13,
+              fontFamily: 'var(--font-data)',
+            }}
+          />
+          <button
+            onClick={handleEmailSubscribe}
+            disabled={emailStatus === 'sending' || !email}
+            style={{
+              padding: '6px 14px',
+              background: emailStatus === 'subscribed' ? 'var(--accent-dim)' : 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: 13,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {emailStatus === 'sending' ? '…' :
+             emailStatus === 'subscribed' ? '✓ Subscribed' :
+             'Subscribe'}
+          </button>
+        </div>
+        <span className="config-desc">
+          {emailStatus === 'subscribed'
+            ? 'You will receive an email when the score exceeds the threshold'
+            : emailStatus === 'error'
+            ? 'Failed to subscribe — please try again'
+            : 'Get notified by email when conditions are favourable'}
         </span>
       </div>
 

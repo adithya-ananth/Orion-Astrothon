@@ -35,6 +35,9 @@ L1_DISTANCE_KM = 1.5e6
 # Rolling history window
 BZ_HISTORY_MINUTES = 30
 
+# Notification check interval (seconds)
+NOTIFICATION_CHECK_INTERVAL_S = 300  # 5 minutes
+
 # NOAA SWPC endpoints
 NOAA_MAG_URL = "https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json"
 NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json"

@@ -305,6 +305,19 @@ Every metric, score, and derived quantity computed by the Aurora Forecast platfo
 
 ---
 
+## 21. Email Notification System
+
+| Field | Detail |
+|-------|--------|
+| **METRIC** | Email notification delivery — sends email when visibility score exceeds subscriber's threshold |
+| **Datapoints used** | Subscriber location (lat, lon), score threshold (0–100), current composite visibility score, anti-spam flag (`email_sent`) |
+| **Formulae** | Background loop every 5 minutes: (1) For each subscriber, compute visibility score via `aurora × 0.50 + cloud_assumed_50 × 0.35 + darkness × 0.15`. (2) **Anti-spam flag logic**: If `score ≥ threshold` AND `email_sent = False` → send email AND set `email_sent = True`. If `score ≥ threshold` AND `email_sent = True` → skip (already notified). If `score < threshold` AND `email_sent = True` → set `email_sent = False` (reset flag). If `score < threshold` AND `email_sent = False` → no action. This ensures one email per breach cycle; user is not spammed during sustained high conditions. |
+| **Data source** | Composite score components: OVATION grid (aurora), astronomical calculations (darkness). Cloud cover assumed moderate (50) for background checks (no async weather fetch). SMTP delivery via environment-configured SMTP server. |
+
+*Source: `server/app/services/notification_service.py` lines 1–170; background loop in `server/app/main.py` lines 52–79*
+
+---
+
 ## Client-Side Color Mappings
 
 These are visual-only metrics (no physics computation) used for UI rendering:
@@ -392,6 +405,7 @@ All magic numbers are defined in `server/app/utils/constants.py`:
 | `WEATHER_CACHE_S` | 900 s (15 min) | Weather cache TTL |
 | `L1_DISTANCE_KM` | 1.5 × 10⁶ km | Propagation Delay (§6) |
 | `BZ_HISTORY_MINUTES` | 30 min | Substorm Precursor (§9) |
+| `NOTIFICATION_CHECK_INTERVAL_S` | 300 s (5 min) | Email notification background check (§21) |
 
 ---
 

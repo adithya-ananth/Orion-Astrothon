@@ -13,8 +13,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.services import noaa_service
-from app.routes import solar_wind, ovation, visibility, forecast, alerts, photography
+from app.services import noaa_service, notification_service, visibility_service, weather_service
+from app.routes import solar_wind, ovation, visibility, forecast, alerts, photography, notifications
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,6 +49,36 @@ async def _poll_kp_forecast_alerts():
     )
 
 
+def _compute_score_for_location(lat: float, lon: float) -> float:
+    """Compute the current composite visibility score for a location.
+
+    Used by the notification background loop to evaluate each subscriber's
+    threshold.  Uses cached OVATION data (no network call) but falls back
+    to a simple aurora-only score when weather data is unavailable (since
+    we cannot ``await`` inside this sync helper).
+    """
+    from datetime import datetime, timezone as _tz
+
+    cache = noaa_service.get_cache()
+    ovation_data = cache["ovation"]["data"]
+
+    now = datetime.now(_tz.utc)
+    darkness = visibility_service.get_darkness_score(lat, lon, now)
+    aurora = visibility_service.get_aurora_probability(lat, lon, ovation_data)
+
+    # Lightweight composite: aurora 50% + darkness 15%, cloud assumed moderate (50)
+    cloud_score = 50.0
+    score = aurora * 0.50 + cloud_score * 0.35 + darkness * 0.15
+    return max(0, min(100, score))
+
+
+def _run_notification_checks():
+    """Run notification checks for all subscribers."""
+    events = notification_service.check_and_notify(_compute_score_for_location)
+    if events:
+        logger.info("[notifications] %d event(s): %s", len(events), events)
+
+
 async def _scheduler_loop():
     """Background loop to poll NOAA endpoints at different cadences."""
     try:
@@ -67,10 +97,12 @@ async def _scheduler_loop():
     mag_plasma_interval = 60      # 1 minute
     ovation_interval = 300        # 5 minutes
     kp_forecast_interval = 1800   # 30 minutes
+    notification_interval = 300   # 5 minutes
 
     last_mag_plasma = time.time()
     last_ovation = time.time()
     last_kp_forecast = time.time()
+    last_notification = time.time()
 
     while True:
         try:
@@ -100,6 +132,14 @@ async def _scheduler_loop():
                 except Exception as exc:
                     logger.error("[cron] Kp/forecast fetch error: %s", exc)
                 last_kp_forecast = time.time()
+
+            if now - last_notification >= notification_interval:
+                logger.debug("Checking notification subscribers...")
+                try:
+                    _run_notification_checks()
+                except Exception as exc:
+                    logger.error("[cron] notification check error: %s", exc)
+                last_notification = time.time()
 
             await asyncio.sleep(10)  # Sleep small amount to not inherit busy loop
         except Exception as e:
@@ -157,6 +197,7 @@ app.include_router(visibility.router)
 app.include_router(forecast.router)
 app.include_router(alerts.router)
 app.include_router(photography.router)
+app.include_router(notifications.router)
 
 
 @app.get("/api/health")

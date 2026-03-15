@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, Query
 from fastapi.responses import JSONResponse
 
-from app.services import noaa_service, solar_wind_service, visibility_service
+from app.services import noaa_service, notification_service, solar_wind_service, visibility_service
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -31,6 +31,11 @@ def configure_alert(
             "createdAt": datetime.now(timezone.utc).isoformat(),
         }
         _alert_configs.append(config)
+
+        # If email provided, also register for email notifications
+        if email:
+            notification_service.subscribe(lat, lon, email, threshold)
+
         return JSONResponse(status_code=201, content={"status": "ok", "data": config})
     except Exception as exc:
         return {"status": "error", "message": str(exc)}

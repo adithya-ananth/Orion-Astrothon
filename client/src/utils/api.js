@@ -39,3 +39,16 @@ export function fetchPointVisibility(lat, lon) {
 export function fetchKpIndex() {
   return request('/api/forecast/kp').then(r => r.data || r);
 }
+
+export function subscribeNotifications(lat, lon, email, threshold) {
+  return request('/api/notifications/subscribe', {
+    method: 'POST',
+    body: JSON.stringify({ lat, lon, email, threshold }),
+  }).then(r => r.data || r);
+}
+
+export function unsubscribeNotifications(subscriberId) {
+  return request(`/api/notifications/unsubscribe/${subscriberId}`, {
+    method: 'DELETE',
+  });
+}
