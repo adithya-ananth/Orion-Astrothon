@@ -59,7 +59,7 @@ A real-time, hyper-local aurora forecasting and visualization platform that brid
 └──────────────────────┬───────────────────────────────┘
                        │ REST API
 ┌──────────────────────▼───────────────────────────────┐
-│                  Express Backend                      │
+│               FastAPI Backend (Python)                │
 │  ┌──────────┐ ┌─────────────┐ ┌───────────────────┐ │
 │  │ NOAA     │ │ Visibility  │ │ Solar Wind        │ │
 │  │ Service  │ │ Service     │ │ Service           │ │
@@ -81,14 +81,15 @@ A real-time, hyper-local aurora forecasting and visualization platform that brid
 ## Quick Start
 
 ### Prerequisites
-- Node.js ≥ 18
+- Python ≥ 3.10
+- Node.js ≥ 18 (for the React frontend)
 - npm ≥ 9
 
 ### Backend
 ```bash
 cd server
-npm install
-npm start        # Starts on port 5000
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 0.0.0.0 --port 5000   # Starts on port 5000
 ```
 
 ### Frontend
@@ -155,7 +156,8 @@ cloud_score = 100 - weighted_pct
 
 ```bash
 cd server
-npm test         # Runs 48 unit tests with coverage
+pip install -r requirements.txt
+python -m pytest tests/ -v    # Runs 48 unit tests
 ```
 
 Tests cover:
