@@ -168,9 +168,25 @@ export default function VisibilityPanel({ lat, lon }) {
           </div>
           <div className="rec-item">
             <div className="rec-label">Shutter</div>
-            <div className="rec-value">{photoSettings.shutter}</div>
+            <div className="rec-value">{photoSettings.shutterSpeed || photoSettings.shutter}</div>
           </div>
         </div>
+        {photoSettings.colorPrediction && (
+          <div className="photo-extra">
+            <div className="extra-label">Color Prediction</div>
+            <div className="extra-value">{photoSettings.colorPrediction}</div>
+          </div>
+        )}
+        {photoSettings.tips && photoSettings.tips.length > 0 && (
+          <div className="photo-tips">
+            <div className="extra-label">Tips</div>
+            <ul className="tips-list">
+              {photoSettings.tips.map((tip, idx) => (
+                <li key={idx}>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

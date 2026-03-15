@@ -1,13 +1,13 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
-  CircleMarker,
   Circle,
   GeoJSON,
   Marker,
   Popup,
   useMapEvents,
+  useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
 import { useAppContext } from '../contexts/AppContext';
@@ -39,25 +39,117 @@ function ClickHandler({ onMapClick }) {
 }
 
 const MIN_VISIBLE_AURORA_PROBABILITY = 2;
+const CANVAS_WIDTH = 360;
+const CANVAS_HEIGHT = 181;
 
+/**
+ * Build a grid from the OVATION coordinate array.
+ * Returns a 2D array [row][col] = probability, where
+ *   row 0 = latitude +90°, row 180 = latitude -90°,
+ *   col 0 = longitude -180°, col 359 = longitude +179°.
+ */
+function buildGrid(coordinates) {
+  const grid = new Float32Array(CANVAS_WIDTH * CANVAS_HEIGHT);
+
+  for (const pt of coordinates) {
+    if (pt.probability <= MIN_VISIBLE_AURORA_PROBABILITY) continue;
+    // Map lat [-90,90] → row [180,0]
+    const row = Math.round(90 - pt.lat);
+    // Map lon [-180,180) → col [0,360)
+    const col = ((Math.round(pt.lon) % 360) + 360) % 360;
+    if (row >= 0 && row < CANVAS_HEIGHT && col >= 0 && col < CANVAS_WIDTH) {
+      grid[row * CANVAS_WIDTH + col] = pt.probability;
+    }
+  }
+  return grid;
+}
+
+/**
+ * Parse an rgba(...) color string into [r, g, b, a] with a in 0-255 range.
+ */
+function parseRGBA(rgba) {
+  const m = rgba.match(/[\d.]+/g);
+  if (!m || m.length < 4) return [0, 0, 0, 0];
+  return [
+    Math.round(+m[0]),
+    Math.round(+m[1]),
+    Math.round(+m[2]),
+    Math.round(+m[3] * 255),
+  ];
+}
+
+/**
+ * Render the OVATION grid onto an offscreen canvas and return a data URL.
+ */
+function renderOvationImage(coordinates) {
+  const grid = buildGrid(coordinates);
+  const canvas = document.createElement('canvas');
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = CANVAS_HEIGHT;
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.createImageData(CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  for (let row = 0; row < CANVAS_HEIGHT; row++) {
+    for (let col = 0; col < CANVAS_WIDTH; col++) {
+      const prob = grid[row * CANVAS_WIDTH + col];
+      if (prob <= MIN_VISIBLE_AURORA_PROBABILITY) continue;
+      const [r, g, b, a] = parseRGBA(auroraProbabilityColor(prob));
+      const idx = (row * CANVAS_WIDTH + col) * 4;
+      imgData.data[idx] = r;
+      imgData.data[idx + 1] = g;
+      imgData.data[idx + 2] = b;
+      imgData.data[idx + 3] = a;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Canvas-based OVATION overlay rendered as a Leaflet ImageOverlay.
+ * Produces a smooth aurora heat-map instead of individual dot markers.
+ * Duplicates the overlay across 3 map widths to cover panning.
+ */
 function OvationOverlay({ coordinates }) {
-  if (!coordinates || coordinates.length === 0) return null;
+  const map = useMap();
+  const overlaysRef = useRef([]);
 
-  return coordinates.map((pt, i) => {
-    if (pt.probability <= MIN_VISIBLE_AURORA_PROBABILITY) return null;
-    return (
-      <CircleMarker
-        key={i}
-        center={[pt.lat, pt.lon]}
-        radius={3}
-        pathOptions={{
-          fillColor: auroraProbabilityColor(pt.probability),
-          fillOpacity: 0.7,
-          stroke: false,
-        }}
-      />
-    );
-  });
+  // Update overlay image when coordinates change
+  useEffect(() => {
+    if (!coordinates || coordinates.length === 0) return;
+
+    const dataUrl = renderOvationImage(coordinates);
+    
+    // Bounds for center, left (-360), and right (+360) copies
+    const boundsList = [
+      [[-90, -180], [90, 180]],       // Center
+      [[-90, -540], [90, -180]],      // Left copy
+      [[-90, 180], [90, 540]]         // Right copy
+    ];
+
+    if (overlaysRef.current.length > 0) {
+      overlaysRef.current.forEach(layer => layer.setUrl(dataUrl));
+    } else {
+      overlaysRef.current = boundsList.map(bounds => 
+        L.imageOverlay(dataUrl, bounds, {
+          opacity: 0.85,
+          interactive: false,
+          className: 'ovation-image-overlay',
+        }).addTo(map)
+      );
+    }
+  }, [map, coordinates]);
+
+  // Clean up only on unmount
+  useEffect(() => {
+    return () => {
+      overlaysRef.current.forEach(layer => map.removeLayer(layer));
+      overlaysRef.current = [];
+    };
+  }, [map]);
+
+  return null;
 }
 
 export default function AuroraMap({ lat, lon }) {
@@ -113,11 +205,18 @@ export default function AuroraMap({ lat, lon }) {
       <MapContainer
         center={center}
         zoom={4}
+        minZoom={2} // Prevent seeing gray borders
+        maxBounds={[[-90, -540], [90, 540]]} // Limit panning to ~3 worlds wide
+        maxBoundsViscosity={1.0}
         className="map-container"
         zoomControl={true}
         attributionControl={true}
       >
-        <TileLayer url={DARK_TILES} attribution={TILE_ATTR} />
+        <TileLayer 
+          url={DARK_TILES} 
+          attribution={TILE_ATTR} 
+          noWrap={false} // Allow tiles to wrap naturally
+        />
 
         {/* Day/Night terminator */}
         <GeoJSON data={terminator} style={terminatorStyle} />

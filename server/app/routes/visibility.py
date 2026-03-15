@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Query
 
-from app.services import noaa_service, solar_wind_service, visibility_service, weather_service
+from app.services import noaa_service, solar_wind_service, visibility_service, weather_service, photography_service
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,20 @@ async def get_score(lat: float = Query(...), lon: float = Query(...)):
             ovation_stale,
             cache["ovation"]["timestamp"] or "never",
         )
+
+        # compute Kp from cache
+        kp_val = 0.0
+        kp_data = cache["kp"]["data"]
+        if kp_data and isinstance(kp_data, list) and len(kp_data) > 1:
+            try:
+                # The last row is the most recent
+                # Format: [time_tag, kp_index, a_running, station_count]
+                last_row = kp_data[-1]
+                kp_val = float(last_row[1])
+            except (IndexError, ValueError):
+                pass
+        
+        photography_settings = photography_service.get_recommended_settings(kp_val)
 
         cloud_data = await weather_service.fetch_cloud_cover(lat, lon)
         logger.info("[visibility] cloud_data: %s", cloud_data)
@@ -62,6 +76,7 @@ async def get_score(lat: float = Query(...), lon: float = Query(...)):
                 "lon": lon,
                 **result,
                 "ovationReliability": reliability,
+                "photography": photography_settings,
             },
         }
     except Exception as exc:
