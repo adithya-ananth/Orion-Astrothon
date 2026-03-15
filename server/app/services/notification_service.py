@@ -18,7 +18,9 @@ import uuid
 from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import dotenv
 
+dotenv.load_dotenv()  # Load SMTP config from .env file if present
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -56,7 +58,24 @@ SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
 # ---------------------------------------------------------------------------
 
 def subscribe(lat: float, lon: float, email: str, threshold: float = 60) -> dict:
-    """Add a new notification subscriber.  Returns the subscriber record."""
+    """
+    Add or update a notification subscriber.
+    If email exists, updates location and threshold.
+    Returns the subscriber record.
+    """
+    # Check if subscriber exists
+    for sub in _subscribers:
+        if sub["email"] == email:
+            sub["lat"] = lat
+            sub["lon"] = lon
+            sub["threshold"] = threshold
+            # Reset email_sent flag if threshold changed to allow re-trigger
+            # (or we could keep it to prevent spam, but user likely wants to know if new threshold is met)
+            sub["email_sent"] = False 
+            logger.info("[notifications] updated subscriber %s for %s (threshold=%s)", sub["id"], email, threshold)
+            return sub
+
+    # Create new subscriber if not found
     sub = {
         "id": str(uuid.uuid4()),
         "lat": lat,

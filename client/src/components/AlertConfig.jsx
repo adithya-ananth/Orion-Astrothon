@@ -3,6 +3,9 @@ import { useAppContext } from '../contexts/AppContext';
 import { subscribeNotifications } from '../utils/api';
 import useLocation from '../hooks/useLocation';
 
+// Simple debounce inside component scope (though ideally outside or useCallback)
+let debounceTimeout;
+
 export default function AlertConfig() {
   const { alertConfig, setAlertConfig } = useAppContext();
   const { lat, lon } = useLocation();
@@ -11,6 +14,15 @@ export default function AlertConfig() {
 
   const handleToggle = (key) => {
     setAlertConfig((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const updateServerThreshold = (val) => {
+      if (email && /^\S+@\S+\.\S+$/.test(email)) {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+          subscribeNotifications(lat, lon, email, val).catch(() => {});
+        }, 800);
+      }
   };
 
   const handleEmailSubscribe = async () => {
@@ -49,9 +61,11 @@ export default function AlertConfig() {
           max="90"
           step="5"
           value={alertConfig.scoreThreshold}
-          onChange={(e) =>
-            setAlertConfig({ scoreThreshold: Number(e.target.value) })
-          }
+          onChange={(e) => {
+             const val = Number(e.target.value);
+             setAlertConfig({ scoreThreshold: val });
+             updateServerThreshold(val);
+          }}
         />
         <span className="config-desc">
           Alert when visibility score exceeds this value
