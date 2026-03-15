@@ -80,7 +80,7 @@ function App() {
             </h3>
             <span className="text-xs bg-gray-900 px-2 py-1 rounded text-gray-400">Updates every 30 mins</span>
           </div>
-          {showMap ? <AuroraMap userLocation={location} /> : <div className="h-[500px] bg-gray-900 rounded-xl animate-pulse"></div>}
+          {showMap ? <AuroraMap userLocation={location} /> : <div className="h-[700px] bg-gray-900 rounded-xl animate-pulse"></div>}
         </section>
 
         {/* Dashboard */}

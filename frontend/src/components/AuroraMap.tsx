@@ -146,7 +146,7 @@ export default function AuroraMap({ userLocation }: AuroraMapProps) {
   ]
 
   return (
-    <div className="h-[500px] w-full rounded-xl overflow-hidden shadow-lg border border-gray-700 z-0 relative">
+    <div className="h-[700px] w-full rounded-xl overflow-hidden shadow-lg border border-gray-700 z-0 relative">
       <MapContainer
         center={[userLocation.lat, userLocation.lon]}
         zoom={3}
