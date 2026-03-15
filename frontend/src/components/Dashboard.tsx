@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { MapPin, Cloud, Moon, Zap, AlertTriangle } from 'lucide-react'
+import { MapPin, Cloud, Moon, Zap, AlertTriangle, Navigation } from 'lucide-react'
 
 export default function Dashboard() {
   const [solarWind, setSolarWind] = useState<any>(null)
@@ -8,6 +8,8 @@ export default function Dashboard() {
   const [location, setLocation] = useState({ lat: 60.0, lon: -100.0, name: 'Default Location' })
   const [inputLat, setInputLat] = useState('60.0')
   const [inputLon, setInputLon] = useState('-100.0')
+  const [isLocating, setIsLocating] = useState(false)
+  const [locationError, setLocationError] = useState('')
 
   useEffect(() => {
     // Load saved location
@@ -56,35 +58,91 @@ export default function Dashboard() {
     localStorage.setItem('aurora_location', JSON.stringify(newLoc))
   }
 
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser.')
+      return
+    }
+
+    setIsLocating(true)
+    setLocationError('')
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false)
+        const lat = position.coords.latitude
+        const lon = position.coords.longitude
+        setInputLat(lat.toFixed(4))
+        setInputLon(lon.toFixed(4))
+
+        const newLoc = { lat, lon, name: 'My Location' }
+        setLocation(newLoc)
+        localStorage.setItem('aurora_location', JSON.stringify(newLoc))
+      },
+      (error) => {
+        setIsLocating(false)
+        setLocationError('Unable to retrieve your location. Check browser permissions.')
+        console.error('Error getting location:', error)
+      }
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
       {/* Location Settings */}
       <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-        <h2 className="text-xl font-bold mb-4 flex items-center"><MapPin className="mr-2 text-blue-400" /> Location Settings</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <MapPin className="mr-2 text-blue-400" /> Location Settings
+          </div>
+        </h2>
+
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Latitude</label>
-            <input
-              type="number"
-              value={inputLat}
-              onChange={e => setInputLat(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white"
-            />
+          <button
+            onClick={handleUseMyLocation}
+            disabled={isLocating}
+            className="w-full flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 rounded transition disabled:opacity-50"
+          >
+            <Navigation className="w-4 h-4 mr-2" />
+            {isLocating ? 'Locating...' : 'Use My Location'}
+          </button>
+
+          {locationError && (
+            <p className="text-red-400 text-sm text-center">{locationError}</p>
+          )}
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-gray-600"></div>
+            <span className="flex-shrink-0 mx-4 text-gray-500 text-sm font-semibold">OR MANUAL ENTRY</span>
+            <div className="flex-grow border-t border-gray-600"></div>
           </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Longitude</label>
-            <input
-              type="number"
-              value={inputLon}
-              onChange={e => setInputLon(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white"
-            />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Latitude</label>
+              <input
+                type="number"
+                value={inputLat}
+                onChange={e => setInputLat(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Longitude</label>
+              <input
+                type="number"
+                value={inputLon}
+                onChange={e => setInputLon(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white"
+              />
+            </div>
           </div>
+
           <button
             onClick={saveLocation}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition mt-2"
           >
-            Save Location & Calc Score
+            Save & Calc Score
           </button>
         </div>
       </div>

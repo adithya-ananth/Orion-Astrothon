@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useMap } from 'react-leaflet'
-import L from 'leaflet'
 // @ts-ignore
 import terminator from '@joergdietrich/leaflet.terminator'
 
