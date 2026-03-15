@@ -1,0 +1,10 @@
+{
+  "short_name": "Aurora Forecast",
+  "name": "Aurora Forecast — Hyper-Local Intelligence",
+  "description": "Real-time hyper-local aurora visibility predictions powered by NOAA solar wind data",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0a0a1a",
+  "background_color": "#0a0a1a",
+  "icons": []
+}

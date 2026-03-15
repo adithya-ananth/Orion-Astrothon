@@ -1,0 +1,376 @@
+/* ═══════════════════════════════════════════════════════════
+   Solar Wind Dashboard & Side Panels
+   ═══════════════════════════════════════════════════════════ */
+
+/* Top dashboard bar */
+.dashboard-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+  z-index: 1001;
+}
+
+.dashboard-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.dashboard-brand h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  background: linear-gradient(135deg, var(--accent), #66ffcc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dashboard-brand .brand-icon {
+  font-size: 20px;
+}
+
+/* Data widget cards */
+.widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(20, 20, 50, 0.5);
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.widget-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.widget-value {
+  font-family: var(--font-data);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.widget-unit {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-data);
+}
+
+.widget-skeleton {
+  width: 50px;
+  height: 22px;
+}
+
+/* Dashboard actions (right side) */
+.dashboard-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.night-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Side Panel (Visibility + alerts) ── */
+.side-panel {
+  width: 320px;
+  background: var(--bg-panel);
+  backdrop-filter: var(--glass-blur);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+  z-index: 1001;
+}
+
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-section h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+/* Circular gauge */
+.gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.gauge-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.gauge-ring svg {
+  transform: rotate(-90deg);
+}
+
+.gauge-ring circle {
+  fill: none;
+  stroke-width: 8;
+}
+
+.gauge-bg {
+  stroke: var(--bg-secondary);
+}
+
+.gauge-fill {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.gauge-score {
+  font-family: var(--font-data);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.gauge-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* Breakdown bars */
+.breakdown-bar {
+  margin: 8px 0;
+}
+
+.breakdown-bar .bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.breakdown-bar .bar-track {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.breakdown-bar .bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* Photography recommendation */
+.photo-rec {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.photo-rec .rec-item {
+  text-align: center;
+  padding: 8px;
+  background: rgba(20, 20, 50, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.photo-rec .rec-label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.photo-rec .rec-value {
+  font-family: var(--font-data);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Best viewing time */
+.best-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(0, 255, 136, 0.05);
+  border: 1px solid rgba(0, 255, 136, 0.15);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.best-time .time-icon {
+  font-size: 20px;
+}
+
+.best-time .time-value {
+  font-family: var(--font-data);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.best-time .time-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* ── Alert Config Modal ── */
+.alert-config {
+  padding: 16px;
+}
+
+.alert-config .config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.alert-config .config-label {
+  font-size: 13px;
+}
+
+.alert-config .config-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.threshold-slider {
+  width: 100%;
+  margin: 8px 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  outline: none;
+}
+
+.threshold-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.threshold-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+
+/* ── Kp Forecast Chart ── */
+.kp-chart-container {
+  padding: 16px;
+}
+
+.kp-chart-container h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+/* ── Status Bar ── */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: var(--bg-primary);
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  z-index: 1002;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-bar .alert-badge {
+  background: var(--alert);
+  color: #fff;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .dashboard-bar {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .widget {
+    padding: 4px 10px;
+    min-width: 75px;
+  }
+
+  .widget-value {
+    font-size: 14px;
+  }
+
+  .side-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    max-height: 30vh;
+  }
+
+  .dashboard-brand h1 {
+    font-size: 13px;
+  }
+
+  .status-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+
