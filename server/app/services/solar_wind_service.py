@@ -209,3 +209,41 @@ def get_alerts() -> list:
         alerts.append(substorm_alert)
 
     return alerts
+
+
+def check_ovation_reliability(history: list | None = None) -> dict:
+    """
+    Check whether OVATION data should be flagged as potentially unreliable.
+
+    When |dBz/dt| > 2 nT/min, the IMF is changing faster than OVATION's
+    ~30-minute refresh cadence can track.  In that case the static OVATION
+    grid may significantly underestimate (or overestimate) real-time aurora
+    probability.
+
+    Returns a dict with ``reliable`` (bool) and, when unreliable, a
+    ``reason`` string and the ``max_dbz_dt`` rate observed.
+    """
+    bz_data = history if history is not None else _bz_history
+    if len(bz_data) < 2:
+        return {"reliable": True}
+
+    max_rate = 0.0
+    for i in range(1, len(bz_data)):
+        dt_min = (bz_data[i]["timestamp"] - bz_data[i - 1]["timestamp"]) / 60
+        if dt_min <= 0:
+            continue
+        d_bz = abs(bz_data[i]["bz"] - bz_data[i - 1]["bz"])
+        rate = d_bz / dt_min
+        if rate > max_rate:
+            max_rate = rate
+
+    if max_rate > SUBSTORM_DBZ_RATE:
+        return {
+            "reliable": False,
+            "reason": (
+                f"|dBz/dt| = {max_rate:.1f} nT/min exceeds {SUBSTORM_DBZ_RATE} nT/min; "
+                "OVATION may not reflect current conditions"
+            ),
+            "max_dbz_dt": round(max_rate, 2),
+        }
+    return {"reliable": True}

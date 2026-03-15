@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
-from app.services import noaa_service, visibility_service
+from app.services import noaa_service, solar_wind_service, visibility_service
 
 router = APIRouter(prefix="/api/ovation", tags=["ovation"])
 
@@ -12,11 +12,13 @@ router = APIRouter(prefix="/api/ovation", tags=["ovation"])
 def get_latest():
     try:
         cache = noaa_service.get_cache()
+        reliability = solar_wind_service.check_ovation_reliability()
         return {
             "status": "ok",
             "data": cache["ovation"]["data"],
             "timestamp": cache["ovation"]["timestamp"],
             "stale": cache["ovation"]["stale"],
+            "ovationReliability": reliability,
         }
     except Exception as exc:
         return {"status": "error", "message": str(exc)}
@@ -35,10 +37,26 @@ def get_probability(lat: float = Query(...), lon: float = Query(...)):
             )
 
         probability = visibility_service.get_aurora_probability(lat, lon, ovation_data)
+
+        # Apply real-time Bz adjustment
+        conditions = solar_wind_service.get_latest_conditions()
+        bz = conditions.get("bz")
+        adjusted = visibility_service.adjust_aurora_for_bz(probability, bz)
+
+        reliability = solar_wind_service.check_ovation_reliability()
+
         return {
             "status": "ok",
-            "data": {"lat": lat, "lon": lon, "probability": probability},
+            "data": {
+                "lat": lat,
+                "lon": lon,
+                "probability": round(adjusted, 1),
+                "rawProbability": round(probability, 1),
+                "bzAdjusted": adjusted != probability,
+                "currentBz": bz,
+            },
             "timestamp": cache["ovation"]["timestamp"],
+            "ovationReliability": reliability,
         }
     except Exception as exc:
         return {"status": "error", "message": str(exc)}

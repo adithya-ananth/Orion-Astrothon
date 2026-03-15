@@ -3,7 +3,9 @@
 from datetime import datetime, timezone
 
 from app.services.visibility_service import (
+    adjust_aurora_for_bz,
     compute_visibility_score,
+    estimate_bortle_class,
     get_aurora_probability,
     get_cloud_score,
     get_darkness_score,
@@ -81,6 +83,80 @@ class TestGetAuroraProbability:
         }
         result = get_aurora_probability(65.1, 25.1, data)
         assert result == 75
+
+    def test_handles_list_format(self):
+        """NOAA OVATION data uses list [lon, lat, aurora] format."""
+        data = {"coordinates": [[25, 65, 75], [26, 66, 40]]}
+        result = get_aurora_probability(65.1, 25.1, data)
+        assert result == 75
+
+
+class TestAdjustAuroraForBz:
+    def test_no_adjustment_when_bz_above_threshold(self):
+        assert adjust_aurora_for_bz(50, 0) == 50
+        assert adjust_aurora_for_bz(50, -5) == 50
+
+    def test_no_adjustment_when_bz_at_threshold(self):
+        assert adjust_aurora_for_bz(50, -7) == 50
+
+    def test_no_adjustment_when_bz_is_none(self):
+        assert adjust_aurora_for_bz(50, None) == 50
+
+    def test_boost_when_bz_below_threshold(self):
+        # Bz = -10: boost = 1 + (10 - 7) * 0.05 = 1.15
+        result = adjust_aurora_for_bz(50, -10)
+        assert result == 50 * 1.15  # 57.5
+
+    def test_larger_boost_for_stronger_southward(self):
+        mild = adjust_aurora_for_bz(50, -10)
+        strong = adjust_aurora_for_bz(50, -20)
+        assert strong > mild
+
+    def test_clamped_to_100(self):
+        # Very high base + strong Bz should not exceed 100
+        result = adjust_aurora_for_bz(95, -20)
+        assert result == 100
+
+    def test_zero_probability_stays_zero(self):
+        assert adjust_aurora_for_bz(0, -20) == 0
+
+
+class TestEstimateBortleClass:
+    def test_london_is_high_bortle(self):
+        """Central London should have a high Bortle class (bright sky)."""
+        bortle = estimate_bortle_class(51.51, -0.13)
+        assert bortle >= 7
+
+    def test_rural_scotland_is_low_bortle(self):
+        """Rural Scottish Highlands (away from towns) should be dark."""
+        bortle = estimate_bortle_class(57.0, -5.5)  # Highlands, away from Inverness
+        assert bortle <= 4
+
+    def test_tromso_area_darker_than_london(self):
+        """Tromsø area should be much darker than London."""
+        tromso = estimate_bortle_class(69.65, 18.96)
+        london = estimate_bortle_class(51.51, -0.13)
+        assert tromso < london
+
+    def test_london_darker_than_rural_scotland(self):
+        """London should have a brighter sky (higher Bortle) than rural Scotland."""
+        london = estimate_bortle_class(51.51, -0.13)
+        scotland = estimate_bortle_class(57.0, -5.5)
+        assert london > scotland
+
+    def test_remote_location_is_dark(self):
+        """A remote location far from any city should be very dark."""
+        bortle = estimate_bortle_class(-70, 0)  # Antarctica
+        assert bortle <= 3
+
+
+class TestDarknessScoreBortleDifferentiation:
+    def test_london_vs_scotland_different_darkness(self):
+        """London and rural Scotland should get different darkness scores."""
+        winter_night = datetime(2024, 1, 15, 0, 0, 0, tzinfo=timezone.utc)
+        london_score = get_darkness_score(51.51, -0.13, winter_night)
+        scotland_score = get_darkness_score(57.48, -4.22, winter_night)
+        assert scotland_score > london_score
 
 
 class TestGetDarknessScore:

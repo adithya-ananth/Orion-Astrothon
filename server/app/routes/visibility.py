@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Query
 
-from app.services import noaa_service, visibility_service, weather_service
+from app.services import noaa_service, solar_wind_service, visibility_service, weather_service
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +40,30 @@ async def get_score(lat: float = Query(...), lon: float = Query(...)):
             cloud_data,
             darkness_score,
         )
+
+        # Apply real-time Bz adjustment to aurora breakdown
+        conditions = solar_wind_service.get_latest_conditions()
+        bz = conditions.get("bz")
+        raw_aurora = result["breakdown"]["aurora"]
+        adjusted_aurora = round(visibility_service.adjust_aurora_for_bz(raw_aurora, bz))
+        if adjusted_aurora != raw_aurora:
+            result["breakdown"]["aurora"] = adjusted_aurora
+            result["bzAdjusted"] = True
+            result["currentBz"] = bz
+
+        reliability = solar_wind_service.check_ovation_reliability()
+
         logger.info("[visibility] result: %s", result)
 
-        return {"status": "ok", "data": {"lat": lat, "lon": lon, **result}}
+        return {
+            "status": "ok",
+            "data": {
+                "lat": lat,
+                "lon": lon,
+                **result,
+                "ovationReliability": reliability,
+            },
+        }
     except Exception as exc:
         logger.error("[visibility] score computation failed: %s", exc, exc_info=True)
         return {"status": "error", "message": str(exc)}

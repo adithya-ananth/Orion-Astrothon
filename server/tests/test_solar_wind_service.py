@@ -4,6 +4,7 @@ import time
 
 from app.services.solar_wind_service import (
     check_bz_threshold,
+    check_ovation_reliability,
     check_speed_threshold,
     compute_newell_coupling,
     compute_propagation_delay,
@@ -121,3 +122,41 @@ class TestDetectSubstorm:
 
         alert = detect_substorm(history)
         assert alert is None
+
+
+class TestCheckOvationReliability:
+    def test_reliable_when_no_history(self):
+        result = check_ovation_reliability([])
+        assert result["reliable"] is True
+
+    def test_reliable_when_stable_bz(self):
+        base_time = time.time()
+        history = [
+            {"timestamp": base_time, "bz": -5},
+            {"timestamp": base_time + 60, "bz": -5.5},
+            {"timestamp": base_time + 120, "bz": -5.2},
+        ]
+        result = check_ovation_reliability(history)
+        assert result["reliable"] is True
+
+    def test_unreliable_when_rapid_change(self):
+        base_time = time.time()
+        history = [
+            {"timestamp": base_time, "bz": 0},
+            {"timestamp": base_time + 60, "bz": -5},  # 5 nT/min > 2 threshold
+        ]
+        result = check_ovation_reliability(history)
+        assert result["reliable"] is False
+        assert "max_dbz_dt" in result
+        assert result["max_dbz_dt"] > 2
+
+    def test_returns_reason_when_unreliable(self):
+        base_time = time.time()
+        history = [
+            {"timestamp": base_time, "bz": 0},
+            {"timestamp": base_time + 60, "bz": -10},
+        ]
+        result = check_ovation_reliability(history)
+        assert result["reliable"] is False
+        assert "reason" in result
+        assert "OVATION" in result["reason"]

@@ -6,6 +6,10 @@ Application constants — all magic numbers in one place.
 BZ_ALERT_THRESHOLD = -7        # nT
 SPEED_ALERT_THRESHOLD = 500    # km/s
 
+# Bz-based aurora probability adjustment
+BZ_AURORA_BOOST_THRESHOLD = -7  # nT — same as alert threshold
+BZ_AURORA_BOOST_FACTOR = 0.05   # multiplier per nT beyond threshold
+
 # Substorm detection
 SUBSTORM_DBZ_RATE = 2          # nT/min
 SUBSTORM_SUSTAINED_MIN = 5     # minutes

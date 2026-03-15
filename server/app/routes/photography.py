@@ -29,12 +29,21 @@ def _get_recommended_settings(kp: float) -> dict:
         shutter_speed = "20s"
         color_prediction = "Faint or sub-visual aurora; may only appear in long exposure photos"
 
+    # Aurora emission color prediction based on Kp
+    if kp > 6:
+        aurora_color = "Green and red (high altitude oxygen excited)"
+    elif kp >= 5:
+        aurora_color = "Green with possible red upper fringes"
+    else:
+        aurora_color = "Green (557.7nm atomic oxygen dominant)"
+
     return {
         "kp": kp,
         "iso": iso,
         "aperture": aperture,
         "shutterSpeed": shutter_speed,
         "colorPrediction": color_prediction,
+        "auroraColor": aurora_color,
         "tips": [
             "Use a sturdy tripod",
             "Manual focus set to infinity",
