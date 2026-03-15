@@ -48,6 +48,8 @@ export default function useVisibility(lat, lon) {
           breakdown: dataPayload.breakdown ?? null,
           bestTime: dataPayload.best_viewing_time ?? null,
           photography: dataPayload.photography ?? null,
+          ovationReliability: dataPayload.ovationReliability ?? null,
+          bzAdjusted: dataPayload.bzAdjusted ?? false,
         };
         
         console.log('[useVisibility] Parsed payload:', parsed);

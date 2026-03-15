@@ -138,7 +138,7 @@ class TestEstimateBortleClass:
         london = estimate_bortle_class(51.51, -0.13)
         assert tromso < london
 
-    def test_london_darker_than_rural_scotland(self):
+    def test_london_brighter_than_rural_scotland(self):
         """London should have a brighter sky (higher Bortle) than rural Scotland."""
         london = estimate_bortle_class(51.51, -0.13)
         scotland = estimate_bortle_class(57.0, -5.5)

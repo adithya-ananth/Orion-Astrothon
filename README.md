@@ -25,9 +25,11 @@ A real-time, hyper-local aurora forecasting and visualization platform that brid
 
 ### D3 — Visibility Score Engine
 - Composite 0–100 score per location:
-  - **Aurora probability** (50% weight) — interpolated from OVATION grid
+  - **Aurora probability** (50% weight) — interpolated from OVATION grid, with real-time Bz adjustment
   - **Cloud cover** (35% weight) — layer-separated (low stratus weighted 2x vs. high cirrus) via Open-Meteo
-  - **Darkness** (15% weight) — sun altitude + moon illumination × altitude + Bortle estimate
+  - **Darkness** (15% weight) — sun altitude + moon illumination × altitude + VIIRS-based Bortle estimate
+- Bz adjustment: when Bz < −7 nT, aurora probability is boosted by `1 + (|Bz| − 7) × 0.05`, capped at 100%
+- VIIRS-inspired light-pollution model differentiates urban vs. rural darkness scores
 - Queryable for any lat/lon in real time
 
 ### D4 — Alert System
@@ -35,10 +37,11 @@ A real-time, hyper-local aurora forecasting and visualization platform that brid
 - Raw Bz alert: fires at Bz < −7 nT regardless of composite score
 - Substorm precursor: dBz/dt > 2 nT/min sustained 5 min → "Watch the sky now"
 - Solar wind speed alert: fires at v > 500 km/s
+- OVATION reliability flag: when |dBz/dt| > 2 nT/min, OVATION data is flagged as potentially unreliable
 - Magnetic midnight window per location as daily optimal viewing schedule
 
 ### Stretch Goals
-- **Photography Settings Advisor** — ISO, aperture, shutter recommendations based on Kp level + aurora color prediction
+- **Photography Settings Advisor** — ISO, aperture, shutter recommendations based on Kp level + aurora color prediction (Kp-dependent emission line)
 - **Substorm Early Warning** — real-time dBz/dt monitoring with 10-minute precursor alerts
 - **Night-Vision Mode** — red-tinted UI for field use
 - **PWA Manifest** — offline-capable progressive web app structure
@@ -136,7 +139,7 @@ The composite score (0–100) is computed as:
 Score = aurora_prob × 0.50 + cloud_score × 0.35 + darkness_score × 0.15
 ```
 
-**Aurora Probability (50%)**: Nearest-neighbor interpolation from OVATION 360×181 grid.
+**Aurora Probability (50%)**: Nearest-neighbor interpolation from OVATION 360×181 grid, with real-time Bz adjustment. When instantaneous Bz < −7 nT, the probability is boosted by `1 + (|Bz| − 7) × 0.05` to capture rapid IMF changes between OVATION's 30-min updates.
 
 **Cloud Score (35%)**: Layer-separated from Open-Meteo. Low stratus weighted 2× (worst for visibility) vs. high cirrus at 0.5×:
 ```
@@ -144,11 +147,14 @@ weighted_pct = (low×2 + mid×1.5 + high×0.5) / 4
 cloud_score = 100 - weighted_pct
 ```
 
-**Darkness Score (15%)**: Sun altitude (0–60 pts), moon penalty (0–30 pts), Bortle baseline (+10 pts):
+**Darkness Score (15%)**: Sun altitude (0–60 pts), moon penalty (0–30 pts), VIIRS-based Bortle bonus (0–20 pts):
 - Astronomical twilight (sun < −18°): 60 pts
 - Nautical twilight (sun < −12°): 40 pts
 - Civil twilight (sun < −6°): 20 pts
 - Moon penalty: illumination_fraction × 30 (only when moon above horizon)
+- Bortle bonus: VIIRS-inspired light pollution model (urban → 0 pts, rural → up to 20 pts)
+
+**OVATION Reliability**: When |dBz/dt| > 2 nT/min, OVATION data is flagged as potentially unreliable since the IMF is changing faster than the 30-min update cadence.
 
 ---
 
@@ -157,7 +163,7 @@ cloud_score = 100 - weighted_pct
 ```bash
 cd server
 pip install -r requirements.txt
-python -m pytest tests/ -v    # Runs 48 unit tests
+python -m pytest tests/ -v    # Runs 85 unit tests
 ```
 
 Tests cover:
@@ -166,10 +172,15 @@ Tests cover:
 - Newell coupling function
 - Bz and speed threshold checks
 - Substorm detection (dBz/dt sustained rate)
+- OVATION reliability flag (dBz/dt > 2 nT/min)
 - Solar position at known coordinates
 - Lunar phase calculation
 - Astronomical twilight detection
 - Day/night terminator computation
+- Bz-based aurora probability adjustment
+- VIIRS-based Bortle class estimation (urban vs. rural)
+- Aurora color prediction by Kp level
+- Photography settings recommendations
 
 ---
 
@@ -184,6 +195,7 @@ Tests cover:
 | NOAA SWPC 3-day forecast | Predicted Kp | 2× daily |
 | NOAA SWPC alerts | Geomagnetic alerts/watches | Event-driven |
 | Open-Meteo | Cloud cover (low/mid/high) | 15 min cache |
+| VIIRS Nighttime Lights | Light pollution reference (Bortle) | Static reference data |
 
 ---
 

@@ -65,7 +65,7 @@ function BreakdownBar({ label, value, color }) {
 }
 
 export default function VisibilityPanel({ lat, lon }) {
-  const { score, breakdown, bestTime, photography, loading, error } =
+  const { score, breakdown, bestTime, photography, ovationReliability, bzAdjusted, loading, error } =
     useVisibility(lat, lon);
 
   const magneticMidnight = useMemo(() => {
@@ -124,6 +124,23 @@ export default function VisibilityPanel({ lat, lon }) {
           color="#aa88ff"
         />
       </div>
+
+      {ovationReliability && !ovationReliability.reliable && (
+        <div className="panel-section" style={{ background: 'rgba(255,68,68,0.08)', borderRadius: 8, padding: '8px 12px', marginTop: 4 }}>
+          <p style={{ fontSize: 11, color: 'var(--alert)', margin: 0, lineHeight: 1.4 }}>
+            ⚠️ OVATION data may be unreliable — rapid Bz changes detected
+            (|dBz/dt| = {ovationReliability.max_dbz_dt} nT/min)
+          </p>
+        </div>
+      )}
+
+      {bzAdjusted && (
+        <div className="panel-section" style={{ padding: '4px 12px', marginTop: 2 }}>
+          <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic' }}>
+            Aurora probability adjusted for current Bz conditions
+          </p>
+        </div>
+      )}
 
       {viewingTime && (
         <div className="panel-section">

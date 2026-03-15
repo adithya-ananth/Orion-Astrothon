@@ -24,11 +24,11 @@ Every metric, score, and derived quantity computed by the Aurora Forecast platfo
 | Field | Detail |
 |-------|--------|
 | **METRIC** | Aurora Probability at a given (lat, lon) — 0 to 100 % |
-| **Datapoints used** | OVATION aurora grid (array of `[Longitude, Latitude, Aurora_probability]` points, 360×181 grid), user latitude, user longitude |
-| **Formulae** | Nearest-neighbor interpolation: (1) Normalize user longitude to [0, 360): `norm_lon = ((lon % 360) + 360) % 360`. (2) For each grid point within 5° of the user in both lat and lon, compute squared Euclidean distance: `dist = (p_lat − lat)² + (p_lon − norm_lon)²`. (3) Return the aurora value of the nearest grid point, clamped to [0, 100]. |
-| **Data source** | OVATION grid → NOAA SWPC endpoint `https://services.swpc.noaa.gov/json/ovation_aurora_latest.json`, updated ~every 30 minutes. Staleness threshold: 45 minutes (`OVATION_STALE_S = 2700 s`). |
+| **Datapoints used** | OVATION aurora grid (array of `[Longitude, Latitude, Aurora_probability]` points or `{Longitude, Latitude, Aurora}` dicts, 360×181 grid), user latitude, user longitude, current Bz (nT) |
+| **Formulae** | Nearest-neighbor interpolation: (1) Normalize user longitude to [0, 360): `norm_lon = ((lon % 360) + 360) % 360`. (2) For each grid point within 5° of the user in both lat and lon, compute squared Euclidean distance: `dist = (p_lat − lat)² + (p_lon − norm_lon)²`. (3) Return the aurora value of the nearest grid point, clamped to [0, 100]. **Bz adjustment**: If Bz < −7 nT, multiply probability by `1 + (|Bz| − 7) × 0.05`, clamped to [0, 100]. This compensates for OVATION's ~30-min update lag when the IMF turns sharply southward. |
+| **Data source** | OVATION grid → NOAA SWPC endpoint `https://services.swpc.noaa.gov/json/ovation_aurora_latest.json`, updated ~every 30 minutes. Bz → NOAA SWPC magnetometer 1-day data. Staleness threshold: 45 minutes (`OVATION_STALE_S = 2700 s`). |
 
-*Source: `server/app/services/visibility_service.py` lines 46–92*
+*Source: `server/app/services/visibility_service.py` lines 97–168*
 
 ---
 
@@ -50,11 +50,11 @@ Every metric, score, and derived quantity computed by the Aurora Forecast platfo
 | Field | Detail |
 |-------|--------|
 | **METRIC** | Darkness Score (0–100, higher = darker sky) |
-| **Datapoints used** | Sun altitude (degrees), Moon altitude (degrees), Lunar illumination fraction (0–1) |
-| **Formulae** | `Darkness = sun_contribution − moon_penalty + bortle_bonus`, clamped to [0, 100]. **Sun contribution** (based on altitude): sun < −18° → +60 pts (astronomical twilight); −18° ≤ sun < −12° → +40 pts (nautical twilight); −12° ≤ sun < −6° → +20 pts (civil twilight); −6° ≤ sun < 0° → +5 pts; sun ≥ 0° → 0 pts. **Moon penalty**: `moon_penalty = lunar_illumination × 30` (only applied when moon altitude > 0°). Full moon (illumination = 1.0) → −30 pts; new moon (0.0) → 0 pts. **Bortle bonus**: +10 pts (assumes rural Bortle class 4 baseline). |
-| **Data source** | Sun altitude → computed via `solar_position(lat, lon, dt)` (simplified astronomical formulae, see §8). Moon altitude → computed via `lunar_position(lat, lon, dt)` (see §9). Lunar illumination → computed via `lunar_phase(dt)` (see §10). All derived from lat, lon, and current UTC timestamp — no external API needed. |
+| **Datapoints used** | Sun altitude (degrees), Moon altitude (degrees), Lunar illumination fraction (0–1), Observer latitude/longitude (for Bortle estimate) |
+| **Formulae** | `Darkness = sun_contribution − moon_penalty + bortle_bonus`, clamped to [0, 100]. **Sun contribution** (based on altitude): sun < −18° → +60 pts (astronomical twilight); −18° ≤ sun < −12° → +40 pts (nautical twilight); −12° ≤ sun < −6° → +20 pts (civil twilight); −6° ≤ sun < 0° → +5 pts; sun ≥ 0° → 0 pts. **Moon penalty**: `moon_penalty = lunar_illumination × 30` (only applied when moon altitude > 0°). Full moon (illumination = 1.0) → −30 pts; new moon (0.0) → 0 pts. **VIIRS-based Bortle bonus**: `bortle_bonus = (9 − bortle_class) × 2.5`, clamped to [0, 20]. Bortle class estimated from VIIRS nighttime-lights reference points using quartic radiance decay (1/d⁴). Urban areas (Bortle 8–9) → 0–2.5 pts; rural areas (Bortle 3–4) → 12.5–15 pts; excellent dark sites (Bortle 1–2) → 17.5–20 pts. |
+| **Data source** | Sun altitude → computed via `solar_position(lat, lon, dt)` (see §10). Moon altitude → computed via `lunar_position(lat, lon, dt)` (see §11). Lunar illumination → computed via `lunar_phase(dt)` (see §12). Bortle class → VIIRS-inspired light-pollution reference data (see §16a). |
 
-*Source: `server/app/services/visibility_service.py` lines 121–154*
+*Source: `server/app/services/visibility_service.py` lines 171–235*
 
 ---
 
@@ -201,16 +201,55 @@ Every metric, score, and derived quantity computed by the Aurora Forecast platfo
 
 ---
 
+## 16a. VIIRS-Based Bortle Class Estimation
+
+| Field | Detail |
+|-------|--------|
+| **METRIC** | Estimated Bortle class (1–9) at a given (lat, lon) |
+| **Datapoints used** | Observer latitude, observer longitude, VIIRS nighttime-lights reference points |
+| **Formulae** | For each reference city, compute Euclidean distance to query point. If distance < 0.1°, assign city's radiance directly. Otherwise, use quartic decay: `contribution = radiance / d⁴` (where d is angular distance in degrees). Aggregate contributions from all cities within 5° influence radius, plus a background radiance of 2.0 nW. Map aggregate radiance to Bortle class: ≥100 → 8, ≥50 → 7, ≥25 → 6, ≥10 → 5, ≥5 → 4, ≥2 → 3, ≥0.5 → 2, <0.5 → 1. |
+| **Data source** | VIIRS nighttime-lights reference data — 24 representative cities with approximate VIIRS radiance values (nW/cm²/sr), embedded as static reference data. Inspired by NASA/NOAA VIIRS Day-Night Band data. |
+
+*Source: `server/app/services/visibility_service.py` lines 70–95, 171–219*
+
+---
+
+## 16b. Bz-Adjusted Aurora Probability
+
+| Field | Detail |
+|-------|--------|
+| **METRIC** | Bz-adjusted Aurora Probability — compensates for OVATION update lag |
+| **Datapoints used** | Raw OVATION aurora probability, current Bz (nT) |
+| **Formulae** | If Bz ≥ −7 nT or Bz is null: no adjustment (return raw probability). If Bz < −7 nT: `adjusted = probability × (1 + (|Bz| − 7) × 0.05)`, clamped to [0, 100]. Rationale: OVATION updates ~every 30 min, but Bz can change rapidly. Strongly southward Bz (< −7 nT) increases aurora likelihood that OVATION hasn't yet captured. |
+| **Data source** | Raw probability → OVATION grid (§2). Bz → NOAA SWPC magnetometer 1-day data (§20). |
+
+*Source: `server/app/services/visibility_service.py` lines 154–168*
+
+---
+
+## 16c. OVATION Reliability Check
+
+| Field | Detail |
+|-------|--------|
+| **METRIC** | OVATION data reliability flag — indicates whether OVATION reflects current conditions |
+| **Datapoints used** | Rolling Bz history (timestamp + value pairs) |
+| **Formulae** | For each consecutive Bz pair, compute `rate = |dBz| / dt_min`. If any rate exceeds 2 nT/min (`SUBSTORM_DBZ_RATE`), return `reliable: false` with the maximum observed rate and explanation. Otherwise return `reliable: true`. |
+| **Data source** | Bz history → in-memory rolling buffer from NOAA SWPC magnetometer data. |
+
+*Source: `server/app/services/solar_wind_service.py` lines 200–238*
+
+---
+
 ## 16. Photography Settings Recommendations
 
 | Field | Detail |
 |-------|--------|
-| **METRIC** | Recommended camera settings (ISO, aperture, shutter speed, color prediction) |
+| **METRIC** | Recommended camera settings (ISO, aperture, shutter speed, color prediction, aurora emission color) |
 | **Datapoints used** | Kp index value (0–9 scale) |
-| **Formulae** | Threshold-based lookup: Kp ≥ 7 → ISO 800, f/2.8, 8 s; Kp 5–6 → ISO 1600, f/2.8, 10 s; Kp 3–4 → ISO 3200, f/2.8, 15 s; Kp 0–2 → ISO 6400, f/2.0, 20 s. Additional tip: if Kp ≥ 5 → "fast-moving aurora — reduce exposure time"; if Kp < 5 → "slow aurora — longer exposures are fine". |
+| **Formulae** | Threshold-based lookup: Kp ≥ 7 → ISO 800, f/2.8, 8 s; Kp 5–6 → ISO 1600, f/2.8, 10 s; Kp 3–4 → ISO 3200, f/2.8, 15 s; Kp 0–2 → ISO 6400, f/2.0, 20 s. Additional tip: if Kp ≥ 5 → "fast-moving aurora — reduce exposure time"; if Kp < 5 → "slow aurora — longer exposures are fine". **Aurora emission color prediction**: Kp < 5 → "Green (557.7nm atomic oxygen dominant)"; Kp 5–6 → "Green with possible red upper fringes"; Kp > 6 → "Green and red (high altitude oxygen excited)". |
 | **Data source** | Kp index → NOAA SWPC Kp endpoint (`https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json`), passed as query parameter by the user. |
 
-*Source: `server/app/routes/photography.py` lines 9–45*
+*Source: `server/app/routes/photography.py` lines 9–60*
 
 ---
 
@@ -339,8 +378,10 @@ All magic numbers are defined in `server/app/utils/constants.py`:
 | Constant | Value | Used by |
 |----------|-------|---------|
 | `BZ_ALERT_THRESHOLD` | −7 nT | Bz Southward Alert (§7) |
+| `BZ_AURORA_BOOST_THRESHOLD` | −7 nT | Bz Aurora Probability Adjustment (§16b) |
+| `BZ_AURORA_BOOST_FACTOR` | 0.05 | Bz Aurora Probability Adjustment (§16b) |
 | `SPEED_ALERT_THRESHOLD` | 500 km/s | Speed Alert (§8) |
-| `SUBSTORM_DBZ_RATE` | 2 nT/min | Substorm Precursor (§9) |
+| `SUBSTORM_DBZ_RATE` | 2 nT/min | Substorm Precursor (§9), OVATION Reliability (§16c) |
 | `SUBSTORM_SUSTAINED_MIN` | 5 min | Substorm Precursor (§9) |
 | `AURORA_WEIGHT` | 0.50 | Composite Visibility (§1) |
 | `CLOUD_WEIGHT` | 0.35 | Composite Visibility (§1) |
@@ -365,4 +406,5 @@ All magic numbers are defined in `server/app/utils/constants.py`:
 | NOAA SWPC 3-Day Forecast | `text/3-day-forecast.txt` | Predicted Kp (3 days, 8 slots/day) | ~2× daily |
 | NOAA SWPC Alerts | `products/alerts.json` | Space weather watches/warnings | Event-driven |
 | Open-Meteo Weather | `api.open-meteo.com/v1/forecast` | Cloud cover (total, low, mid, high) | Real-time (cached 15 min) |
+| VIIRS Nighttime Lights | N/A (embedded reference data) | Light pollution / Bortle class estimation | Static (24 reference cities) |
 | Astronomical Calculations | N/A (computed locally) | Sun/Moon position, lunar phase, terminator | Real-time |

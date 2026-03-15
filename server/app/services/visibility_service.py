@@ -198,9 +198,10 @@ def estimate_bortle_class(lat: float, lon: float) -> int:
     """
     Estimate Bortle class (1-9) from VIIRS-inspired light-pollution reference data.
 
-    Uses an inverse-square radiance decay model from known urban reference
-    points.  The aggregate radiance at the query location is mapped to a
-    Bortle class:
+    Uses a quartic radiance decay model (1/d⁴) from known urban reference
+    points.  Implementation note: computed as ref_rad / (dist_sq²) to avoid
+    sqrt while achieving the intended fall-off.  The aggregate radiance at
+    the query location is mapped to a Bortle class:
 
         radiance (nW)  →  Bortle class
         ≥ 100          →  8  (inner city)
