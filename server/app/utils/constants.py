@@ -36,7 +36,7 @@ NOAA_MAG_URL = "https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.jso
 NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json"
 NOAA_OVATION_URL = "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json"
 NOAA_KP_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
-NOAA_FORECAST_URL = "https://services.swpc.noaa.gov/products/3-day-forecast.json"
+NOAA_FORECAST_URL = "https://services.swpc.noaa.gov/text/3-day-forecast.txt"
 NOAA_ALERTS_URL = "https://services.swpc.noaa.gov/products/alerts.json"
 
 # Open-Meteo

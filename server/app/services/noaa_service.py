@@ -4,6 +4,7 @@ Polls NOAA SWPC endpoints and caches results in memory.
 """
 
 import logging
+import re
 import time
 
 import httpx
@@ -39,6 +40,83 @@ async def _fetch_json(url: str, timeout: float = 10.0):
         resp = await client.get(url, timeout=timeout)
         resp.raise_for_status()
         return resp.json()
+
+
+async def _fetch_text(url: str, timeout: float = 10.0) -> str:
+    """Fetch a URL and return the response body as plain text."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, timeout=timeout)
+        resp.raise_for_status()
+        return resp.text
+
+
+def parse_3day_forecast_text(text: str) -> list[dict]:
+    """
+    Parse the NOAA 3-day plain-text forecast into a list of
+    ``{"time_tag": "<date> <UT range>", "kp": <float>}`` dicts.
+
+    The relevant section looks like::
+
+        NOAA Kp index breakdown Mar 15-Mar 17 2026
+
+                     Mar 15       Mar 16       Mar 17
+        00-03UT       4.00         3.67         2.67
+        03-06UT       4.33         3.67         3.00
+        ...
+
+    Values may carry a parenthetical NOAA scale tag, e.g. ``4.67 (G1)``,
+    which is stripped during parsing.
+    """
+    lines = text.splitlines()
+
+    # --- locate the date header row (e.g. "  Mar 15  Mar 16  Mar 17") ---
+    date_headers: list[str] = []
+    for line in lines:
+        # Match lines that contain 3 month-day tokens
+        tokens = re.findall(r"[A-Z][a-z]{2}\s+\d{1,2}", line)
+        if len(tokens) >= 3:
+            date_headers = tokens[:3]
+            break
+
+    if not date_headers:
+        return []
+
+    # --- parse the 8 time-slot rows, grouped by date for chronological order ---
+    # Collect per-date lists so output is all day1 slots, then day2, then day3
+    per_date: dict[int, list[dict]] = {i: [] for i in range(len(date_headers))}
+    time_slot_re = re.compile(
+        r"^\s*(\d{2}-\d{2}UT)\s+"   # e.g. "00-03UT"
+        r"(.+)$"                     # remaining columns
+    )
+
+    for line in lines:
+        m = time_slot_re.match(line)
+        if not m:
+            continue
+
+        ut_range = m.group(1)          # e.g. "00-03UT"
+        rest = m.group(2)
+
+        # Extract numeric Kp values, stripping optional "(G1)" tags
+        kp_values = re.findall(r"([\d.]+)\s*(?:\([^)]*\))?", rest)
+
+        for i, date_label in enumerate(date_headers):
+            if i < len(kp_values):
+                try:
+                    kp = float(kp_values[i])
+                except ValueError:
+                    kp = 0.0
+                per_date[i].append({
+                    "time_tag": f"{date_label} {ut_range}",
+                    "kp": kp,
+                })
+
+    # Flatten in date order: day1 slots → day2 slots → day3 slots
+    results: list[dict] = []
+    for i in range(len(date_headers)):
+        results.extend(per_date[i])
+
+    return results
 
 
 def _has_mag_gaps(data) -> bool:
@@ -117,9 +195,10 @@ async def fetch_kp_index() -> dict:
 
 
 async def fetch_forecast() -> dict:
-    """Fetch 3-day forecast."""
+    """Fetch and parse the NOAA 3-day plain-text forecast."""
     try:
-        data = await _fetch_json(NOAA_FORECAST_URL)
+        text = await _fetch_text(NOAA_FORECAST_URL)
+        data = parse_3day_forecast_text(text)
         _cache["forecast"] = {"data": data, "timestamp": time.time()}
         return _cache["forecast"]
     except Exception as exc:
