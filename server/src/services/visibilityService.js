@@ -90,6 +90,7 @@ function getCloudScore(cloudData) {
     return Math.max(0, Math.min(100, 100 - weightedPct));
   }
 
+  // Fallback: estimate from individual layers
   const weightedPct = (low * 2 + mid * 1.5 + high * 0.5) / 4;
   return Math.max(0, Math.min(100, 100 - weightedPct));
 }

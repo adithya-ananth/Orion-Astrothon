@@ -145,13 +145,14 @@ function detectSubstorm(history) {
   const bzData = history || bzHistory;
   if (bzData.length < 2) return null;
 
-  // Compute dBz/dt for each consecutive pair (nT/min)
+  // Compute dBz/dt for consecutive pairs; detect rapid southward turning
   const rates = [];
   for (let i = 1; i < bzData.length; i++) {
     const dtMin = (bzData[i].timestamp - bzData[i - 1].timestamp) / 60000;
     if (dtMin <= 0) continue;
-    const dBz = Math.abs(bzData[i].bz - bzData[i - 1].bz);
-    rates.push({ rate: dBz / dtMin, timestamp: bzData[i].timestamp });
+    const dBz = bzData[i].bz - bzData[i - 1].bz;
+    // Negative dBz = southward turning; track rate magnitude for southward only
+    rates.push({ rate: dBz < 0 ? Math.abs(dBz) / dtMin : 0, timestamp: bzData[i].timestamp });
   }
 
   // Check for sustained high rate

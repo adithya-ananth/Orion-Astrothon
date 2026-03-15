@@ -107,14 +107,14 @@ describe('solarWindService', () => {
       expect(solarWindService.detectSubstorm([{ timestamp: 1000, bz: -5 }])).toBeNull();
     });
 
-    it('should detect sustained high dBz/dt', () => {
-      // Create 6 minutes of data with rate > 2 nT/min
+    it('should detect sustained high dBz/dt (southward turning)', () => {
+      // Create 6 minutes of data with southward turning rate > 2 nT/min
       const history = [];
       const baseTime = Date.now() - 10 * 60 * 1000;
       for (let i = 0; i <= 6; i++) {
         history.push({
           timestamp: baseTime + i * 60 * 1000,
-          bz: -i * 3, // 3 nT/min rate
+          bz: -i * 3, // 3 nT/min southward turning rate
         });
       }
 

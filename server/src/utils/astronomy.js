@@ -199,10 +199,10 @@ function dayNightTerminator(date) {
 
   const points = [];
   for (let lonDeg = -180; lonDeg <= 180; lonDeg += 2) {
-    const HA = (normalizeDeg(GMST + lonDeg) - normalizeDeg(0)) * DEG;
+    const HA = (normalizeDeg(GMST + lonDeg)) * DEG;
     // At terminator, altitude = 0 → sin(lat)*sin(dec) + cos(lat)*cos(dec)*cos(HA) = 0
-    // tan(lat) = -cos(HA)*cos(dec)/sin(dec) = -cos(HA)/tan(dec)
-    const tanLat = -Math.cos(HA + lonDeg * DEG) / Math.tan(declination);
+    // tan(lat) = -cos(HA) / tan(dec)
+    const tanLat = -Math.cos(HA) / Math.tan(declination);
     const latDeg = Math.atan(tanLat) * RAD;
     if (latDeg >= -90 && latDeg <= 90) {
       points.push({ lat: latDeg, lon: lonDeg });

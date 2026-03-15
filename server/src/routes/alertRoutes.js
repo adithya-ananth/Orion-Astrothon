@@ -2,6 +2,7 @@
  * Alert configuration and status routes.
  */
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const solarWindService = require('../services/solarWindService');
 const visibilityService = require('../services/visibilityService');
@@ -19,7 +20,7 @@ router.post('/configure', (req, res) => {
     }
 
     const config = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      id: crypto.randomUUID(),
       lat: parseFloat(lat),
       lon: parseFloat(lon),
       threshold: threshold != null ? parseFloat(threshold) : 50,

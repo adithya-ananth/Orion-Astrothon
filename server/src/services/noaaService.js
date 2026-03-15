@@ -59,7 +59,8 @@ async function fetchMagData() {
     let source = 'DSCOVR';
 
     if (hasMagGaps(data)) {
-      // Same endpoint is used by ACE fallback; flag as failover
+      // NOAA serves both DSCOVR and ACE from the same endpoint;
+      // re-fetch and flag as failover for downstream awareness
       data = await fetchJSON(NOAA_MAG_URL);
       source = 'ACE_FAILOVER';
     }

@@ -64,10 +64,13 @@ app.use((err, req, res, _next) => {
 
 // Scheduled data polling with node-cron
 let cronJobs = [];
+let magPlasmaFetching = false;
 
 function startCronJobs() {
-  // Every 1 minute: mag + plasma data
+  // Every 1 minute: mag + plasma data (with overlap guard)
   cronJobs.push(cron.schedule('* * * * *', async () => {
+    if (magPlasmaFetching) return;
+    magPlasmaFetching = true;
     try {
       await Promise.all([
         noaaService.fetchMagData(),
@@ -75,6 +78,8 @@ function startCronJobs() {
       ]);
     } catch (err) {
       console.error('[cron] mag/plasma fetch error:', err.message);
+    } finally {
+      magPlasmaFetching = false;
     }
   }));
 
