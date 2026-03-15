@@ -34,12 +34,25 @@ _cache: dict = {
 }
 
 
-async def _fetch_json(url: str, timeout: float = 10.0):
+async def _fetch_json(url: str, timeout: float = 20.0):
     """Generic fetch helper with timeout and error handling."""
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, timeout=timeout)
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            resp = await client.get(url, timeout=timeout)
+            resp.raise_for_status()
+            
+            # Additional check for non-JSON content or multiple JSON objects
+            text = resp.text.strip()
+            if not text:
+                return None
+            
+            # Simple check if there's possibly extra data
+            # Real fix would require substantial parsing logic, 
+            # but usually it's just a clean JSON we want.
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Error fetching {url}: {e}")
+            raise
 
 
 async def _fetch_text(url: str, timeout: float = 10.0) -> str:

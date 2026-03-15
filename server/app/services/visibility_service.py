@@ -66,27 +66,28 @@ def get_aurora_probability(lat, lon, ovation_data) -> float:
     nearest = 0
 
     for point in coords:
-        if not point or point.get("Aurora") is None:
+        if not isinstance(point, list) or len(point) < 3:
             continue
-        p_lat_val = point.get("Latitude", point.get("lat"))
-        p_lon_val = point.get("Longitude", point.get("lon"))
-        if p_lat_val is None or p_lon_val is None:
-            continue
+        
+        # Format is [Longitude, Latitude, Aurora]
         try:
-            p_lat = float(p_lat_val)
-            p_lon = float(p_lon_val)
+            p_lon = float(point[0])
+            p_lat = float(point[1])
+            aurora_val = float(point[2])
         except (ValueError, TypeError):
             continue
 
         d_lat = p_lat - lat
         d_lon = p_lon - norm_lon
+        
+        # Quick pre-filter before expensive dist calc
+        if abs(d_lat) > 5 or abs(d_lon) > 5:
+            continue
+
         dist = d_lat * d_lat + d_lon * d_lon
         if dist < min_dist:
             min_dist = dist
-            try:
-                nearest = float(point.get("Aurora", 0))
-            except (ValueError, TypeError):
-                nearest = 0
+            nearest = aurora_val
 
     return max(0, min(100, nearest))
 

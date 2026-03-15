@@ -51,39 +51,60 @@ async def _poll_kp_forecast_alerts():
 
 async def _scheduler_loop():
     """Background loop to poll NOAA endpoints at different cadences."""
+    try:
+        # Initial wait to let server start
+        await asyncio.sleep(2)
+        
+        # Immediate first fetch for vital data
+        logger.info("Performing initial data fetch...")
+        await _poll_mag_plasma()
+        await _poll_ovation()
+        await _poll_kp_forecast_alerts()
+        logger.info("Initial fetch complete.")
+    except Exception as e:
+        logger.error(f"Initial fetch failed: {e}")
+
     mag_plasma_interval = 60      # 1 minute
     ovation_interval = 300        # 5 minutes
     kp_forecast_interval = 1800   # 30 minutes
 
-    last_mag_plasma = 0.0
-    last_ovation = 0.0
-    last_kp_forecast = 0.0
+    last_mag_plasma = time.time()
+    last_ovation = time.time()
+    last_kp_forecast = time.time()
 
     while True:
-        now = time.time()
+        try:
+            now = time.time()
 
-        if now - last_mag_plasma >= mag_plasma_interval:
-            try:
-                await _poll_mag_plasma()
-            except Exception as exc:
-                logger.error("[cron] mag/plasma fetch error: %s", exc)
-            last_mag_plasma = time.time()
+            # Using >= allows simple check
+            if now - last_mag_plasma >= mag_plasma_interval:
+                logger.debug("Polling Mag/Plasma...")
+                try:
+                    await _poll_mag_plasma()
+                except Exception as exc:
+                    logger.error("[cron] mag/plasma fetch error: %s", exc)
+                last_mag_plasma = time.time()
 
-        if now - last_ovation >= ovation_interval:
-            try:
-                await _poll_ovation()
-            except Exception as exc:
-                logger.error("[cron] OVATION fetch error: %s", exc)
-            last_ovation = time.time()
+            if now - last_ovation >= ovation_interval:
+                logger.debug("Polling Ovation...")
+                try:
+                    await _poll_ovation()
+                except Exception as exc:
+                    logger.error("[cron] OVATION fetch error: %s", exc)
+                last_ovation = time.time()
 
-        if now - last_kp_forecast >= kp_forecast_interval:
-            try:
-                await _poll_kp_forecast_alerts()
-            except Exception as exc:
-                logger.error("[cron] Kp/forecast/alerts fetch error: %s", exc)
-            last_kp_forecast = time.time()
+            if now - last_kp_forecast >= kp_forecast_interval:
+                logger.debug("Polling Kp/Forecast...")
+                try:
+                    await _poll_kp_forecast_alerts()
+                except Exception as exc:
+                    logger.error("[cron] Kp/forecast fetch error: %s", exc)
+                last_kp_forecast = time.time()
 
-        await asyncio.sleep(10)
+            await asyncio.sleep(10)  # Sleep small amount to not inherit busy loop
+        except Exception as e:
+            logger.error(f"Scheduler loop error: {e}")
+            await asyncio.sleep(5)
 
 
 @asynccontextmanager

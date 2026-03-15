@@ -1,21 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchVisibility } from '../utils/api';
 
 export default function useVisibility(lat, lon) {
   const [data, setData] = useState({ score: null, breakdown: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const prevKey = useRef('');
+
+  // Round coordinates to reduce sensitivity (prevent re-fetching on small GPS jitters)
+  // 2 decimal places is ~1.1km precision
+  const latKey = lat != null ? lat.toFixed(2) : null;
+  const lonKey = lon != null ? lon.toFixed(2) : null;
 
   useEffect(() => {
-    if (lat == null || lon == null) {
-      console.log('[useVisibility] Skipping fetch: lat/lon not available', { lat, lon });
+    if (latKey === null || lonKey === null) {
+      console.log('[useVisibility] Skipping fetch: lat/lon not available');
       return;
     }
-
-    const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
-    if (key === prevKey.current) return;
-    prevKey.current = key;
 
     let cancelled = false;
     setLoading(true);
@@ -23,24 +23,34 @@ export default function useVisibility(lat, lon) {
 
     fetchVisibility(lat, lon)
       .then((result) => {
-        if (cancelled) return;
-        console.log('[useVisibility] Raw API result:', JSON.stringify(result));
+        if (cancelled) {
+          console.log('[useVisibility] Request cancelled, ignoring result');
+          return;
+        }
+        
+        // Debug logging
+        console.log('[useVisibility] API Result:', result);
 
-        // Handle backend error responses (HTTP 200 with status:"error")
-        if (result && result.status === 'error') {
-          console.warn('[useVisibility] Backend returned error:', result.message);
-          setError(result.message || 'Backend error');
+        // Handle possible nesting if api.js didn't unwrap it, or if backend structure changed
+        const dataPayload = result.data || result; 
+
+        // Handle backend error responses
+        if (result.status === 'error' || dataPayload.status === 'error') {
+          const msg = result.message || dataPayload.message || 'Backend error';
+          console.warn('[useVisibility] Backend returned error:', msg);
+          setError(msg);
           setLoading(false);
           return;
         }
 
         const parsed = {
-          score: result.composite ?? result.composite_score ?? result.score ?? null,
-          breakdown: result.breakdown ?? null,
-          bestTime: result.best_viewing_time ?? null,
-          photography: result.photography ?? null,
+          score: dataPayload.composite ?? dataPayload.composite_score ?? dataPayload.score ?? null,
+          breakdown: dataPayload.breakdown ?? null,
+          bestTime: dataPayload.best_viewing_time ?? null,
+          photography: dataPayload.photography ?? null,
         };
-        console.log('[useVisibility] Parsed data:', JSON.stringify(parsed));
+        
+        console.log('[useVisibility] Parsed payload:', parsed);
         setData(parsed);
         setError(null);
       })
@@ -55,7 +65,7 @@ export default function useVisibility(lat, lon) {
     return () => {
       cancelled = true;
     };
-  }, [lat, lon]);
+  }, [latKey, lonKey]); // Keyed dependencies prevent jitter updates
 
   return { ...data, loading, error };
 }
