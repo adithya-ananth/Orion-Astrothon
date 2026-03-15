@@ -12,7 +12,7 @@ function normalizePoint(pt) {
     const rawLon = parseFloat(pt[0]) || 0;
     return {
       lat: parseFloat(pt[1]) || 0,
-      lon: rawLon > 180 ? rawLon - 360 : rawLon,
+      lon: rawLon >= 180 ? rawLon - 360 : rawLon,
       probability: parseFloat(pt[2]) || 0,
     };
   }
@@ -20,7 +20,7 @@ function normalizePoint(pt) {
   const rawLon = parseFloat(pt.Longitude ?? pt.lon ?? pt.longitude ?? 0);
   return {
     lat: parseFloat(pt.Latitude ?? pt.lat ?? pt.latitude ?? 0),
-    lon: rawLon > 180 ? rawLon - 360 : rawLon,
+    lon: rawLon >= 180 ? rawLon - 360 : rawLon,
     probability: parseFloat(pt.Aurora ?? pt.aurora ?? pt.probability ?? 0),
   };
 }

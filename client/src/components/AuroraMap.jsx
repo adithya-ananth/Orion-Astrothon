@@ -114,6 +114,7 @@ function OvationOverlay({ coordinates }) {
   const map = useMap();
   const overlayRef = useRef(null);
 
+  // Update overlay image when coordinates change
   useEffect(() => {
     if (!coordinates || coordinates.length === 0) return;
 
@@ -129,14 +130,17 @@ function OvationOverlay({ coordinates }) {
         className: 'ovation-image-overlay',
       }).addTo(map);
     }
+  }, [map, coordinates]);
 
+  // Clean up only on unmount
+  useEffect(() => {
     return () => {
       if (overlayRef.current) {
         map.removeLayer(overlayRef.current);
         overlayRef.current = null;
       }
     };
-  }, [map, coordinates]);
+  }, [map]);
 
   return null;
 }
