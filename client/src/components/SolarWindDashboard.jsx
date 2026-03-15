@@ -4,6 +4,19 @@ import useSolarWind from '../hooks/useSolarWind';
 import { bzColor, speedColor, kpColor, freshnessColor } from '../utils/colors';
 import '../styles/Dashboard.css';
 
+/**
+ * Rough Kp estimate from real-time Bz and solar wind speed.
+ * Based on empirical correlations; not a formal model.
+ */
+function estimateKp(bz, speed) {
+  if (bz == null) return null;
+  const v = speed || 400;
+  // Newell-like simplified estimate: stronger southward Bz + higher speed → higher Kp
+  const bzContrib = bz < 0 ? Math.min(9, Math.abs(bz) / 2) : 0;
+  const speedContrib = Math.max(0, (v - 350) / 200);
+  return Math.round(Math.min(9, Math.max(0, bzContrib + speedContrib)));
+}
+
 function Widget({ label, value, unit, color, loading }) {
   return (
     <div className="widget">
@@ -52,10 +65,10 @@ export default function SolarWindDashboard() {
         loading={sw.loading}
       />
       <Widget
-        label="Kp"
-        value={sw.coupling != null ? '—' : '—'}
+        label="Kp (est.)"
+        value={sw.bz != null ? estimateKp(sw.bz, sw.speed) : null}
         unit=""
-        color={undefined}
+        color={sw.bz != null ? kpColor(estimateKp(sw.bz, sw.speed)) : undefined}
         loading={sw.loading}
       />
       <Widget

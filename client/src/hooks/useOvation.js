@@ -10,8 +10,13 @@ export default function useOvation(interval = 300000) {
   const load = useCallback(async () => {
     try {
       const result = await fetchOvation();
-      // Expect array of { lat, lon, probability } or OVATION aurora format
-      const coords = result.coordinates || result.data || result || [];
+      // Normalize OVATION data to consistent { lat, lon, probability } format
+      const raw = result.coordinates || result || [];
+      const coords = Array.isArray(raw) ? raw.map(pt => ({
+        lat: parseFloat(pt.Latitude ?? pt.lat ?? pt.latitude ?? 0),
+        lon: parseFloat(pt.Longitude ?? pt.lon ?? pt.longitude ?? 0),
+        probability: parseFloat(pt.Aurora ?? pt.aurora ?? pt.probability ?? 0),
+      })) : [];
       setCoordinates(coords);
       setError(null);
     } catch (err) {

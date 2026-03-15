@@ -84,7 +84,10 @@ function getLatestConditions() {
 /**
  * Newell coupling function:
  *   dΦ/dt = v^(4/3) * Bt^(2/3) * sin^(8/3)(θ/2)
- * where θ = atan2(By, Bz) is the IMF clock angle.
+ * where θ = atan2(|By|, Bz) is the IMF clock angle.
+ * |By| is used because the coupling function depends on the magnitude of the
+ * transverse component regardless of dawn/dusk orientation (GSM By sign only
+ * affects which hemisphere receives more energy, not total geoeffectiveness).
  */
 function computeNewellCoupling(bz, by, speed) {
   const theta = Math.atan2(Math.abs(by), bz);

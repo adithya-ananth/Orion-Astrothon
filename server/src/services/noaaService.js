@@ -51,7 +51,10 @@ function hasMagGaps(data) {
 
 /**
  * Fetch 1-day magnetometer (IMF) data.
- * Implements DSCOVR→ACE failover: if data has gaps, re-fetches and flags it.
+ * Implements DSCOVR→ACE failover: NOAA's mag endpoint automatically serves
+ * the best available data source (DSCOVR primary, ACE backup). When gaps are
+ * detected we re-fetch to pick up any newly available ACE backfill, and flag
+ * the source as ACE_FAILOVER so downstream consumers know data provenance.
  */
 async function fetchMagData() {
   try {
@@ -59,8 +62,8 @@ async function fetchMagData() {
     let source = 'DSCOVR';
 
     if (hasMagGaps(data)) {
-      // NOAA serves both DSCOVR and ACE from the same endpoint;
-      // re-fetch and flag as failover for downstream awareness
+      // NOAA transparently switches to ACE when DSCOVR has gaps.
+      // Re-fetch to pick up any ACE backfill and flag the source.
       data = await fetchJSON(NOAA_MAG_URL);
       source = 'ACE_FAILOVER';
     }

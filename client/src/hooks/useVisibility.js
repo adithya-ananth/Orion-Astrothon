@@ -21,12 +21,8 @@ export default function useVisibility(lat, lon) {
       .then((result) => {
         if (cancelled) return;
         setData({
-          score: result.composite_score ?? result.score ?? null,
-          breakdown: result.breakdown ?? {
-            aurora: result.aurora_probability ?? null,
-            cloud: result.cloud_score ?? null,
-            darkness: result.darkness_score ?? null,
-          },
+          score: result.composite ?? result.composite_score ?? result.score ?? null,
+          breakdown: result.breakdown ?? null,
           bestTime: result.best_viewing_time ?? null,
           photography: result.photography ?? null,
         });

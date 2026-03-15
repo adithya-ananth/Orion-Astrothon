@@ -24,9 +24,9 @@ export default function useSolarWind(interval = 60000) {
         speed: result.speed ?? null,
         density: result.density ?? null,
         temp: result.temperature ?? null,
-        coupling: result.coupling ?? null,
-        delay: result.propagation_delay ?? null,
-        source: result.source ?? 'DSCOVR',
+        coupling: result.newellCoupling ?? result.coupling ?? null,
+        delay: result.propagationDelay ?? result.propagation_delay ?? null,
+        source: result.magSource ?? result.source ?? 'DSCOVR',
         timestamp: result.timestamp ?? new Date().toISOString(),
       });
       setError(null);

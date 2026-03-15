@@ -20,6 +20,7 @@ const photographyRoutes = require('./routes/photographyRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const SHUTDOWN_TIMEOUT_MS = 10000;
 
 // Middleware
 app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:3000' }));
@@ -144,8 +145,8 @@ function shutdown() {
       console.log('[server] HTTP server closed');
       process.exit(0);
     });
-    // Force exit after 10s
-    setTimeout(() => process.exit(1), 10000);
+    // Force exit after timeout
+    setTimeout(() => process.exit(1), SHUTDOWN_TIMEOUT_MS);
   }
 }
 

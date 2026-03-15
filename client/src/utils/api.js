@@ -17,21 +17,25 @@ async function request(url, options = {}) {
 }
 
 export function fetchSolarWind() {
-  return request('/api/solar-wind/latest');
+  return request('/api/solar-wind/latest').then(r => r.data || r);
 }
 
 export function fetchOvation() {
-  return request('/api/ovation/latest');
+  return request('/api/ovation/latest').then(r => r.data || r);
 }
 
 export function fetchVisibility(lat, lon) {
-  return request(`/api/visibility/score?lat=${lat}&lon=${lon}`);
+  return request(`/api/visibility/score?lat=${lat}&lon=${lon}`).then(r => r.data || r);
 }
 
 export function fetchForecast3Day() {
-  return request('/api/forecast/3day');
+  return request('/api/forecast/3day').then(r => r.data || r);
 }
 
 export function fetchPointVisibility(lat, lon) {
-  return request(`/api/visibility/score?lat=${lat}&lon=${lon}`);
+  return request(`/api/visibility/score?lat=${lat}&lon=${lon}`).then(r => r.data || r);
+}
+
+export function fetchKpIndex() {
+  return request('/api/forecast/kp').then(r => r.data || r);
 }

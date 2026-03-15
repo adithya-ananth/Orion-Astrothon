@@ -44,15 +44,14 @@ function OvationOverlay({ coordinates }) {
   if (!coordinates || coordinates.length === 0) return null;
 
   return coordinates.map((pt, i) => {
-    const prob = pt.probability ?? pt.aurora ?? 0;
-    if (prob <= MIN_VISIBLE_AURORA_PROBABILITY) return null;
+    if (pt.probability <= MIN_VISIBLE_AURORA_PROBABILITY) return null;
     return (
       <CircleMarker
         key={i}
-        center={[pt.lat ?? pt.latitude, pt.lon ?? pt.longitude]}
+        center={[pt.lat, pt.lon]}
         radius={3}
         pathOptions={{
-          fillColor: auroraProbabilityColor(prob),
+          fillColor: auroraProbabilityColor(pt.probability),
           fillOpacity: 0.7,
           stroke: false,
         }}
@@ -91,7 +90,7 @@ export default function AuroraMap({ lat, lon }) {
           lat: latlng.lat,
           lon: latlng.lng,
           loading: false,
-          score: result.composite_score ?? result.score ?? null,
+          score: result.composite ?? result.score ?? null,
           breakdown: result.breakdown ?? null,
         });
       } catch {
