@@ -40,6 +40,7 @@ async def fetch_cloud_cover(lat: float, lon: float) -> dict:
 
     try:
         url = f"{OPEN_METEO_BASE}?latitude={lat}&longitude={lon}&current=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high"
+        logger.info("[weather] Fetching cloud cover: lat=%.4f, lon=%.4f", lat, lon)
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, timeout=10.0)
             resp.raise_for_status()
@@ -54,10 +55,11 @@ async def fetch_cloud_cover(lat: float, lon: float) -> dict:
             "high": current.get("cloud_cover_high"),
         }
 
+        logger.info("[weather] Cloud data result: %s", data)
         _weather_cache[key] = {"data": data, "timestamp": now}
         return data
     except Exception as exc:
-        logger.error("fetch_cloud_cover error: %s", exc)
+        logger.error("fetch_cloud_cover error for (%.4f, %.4f): %s", lat, lon, exc)
         # Return cached data if available (even if stale)
         if key in _weather_cache:
             return _weather_cache[key]["data"]

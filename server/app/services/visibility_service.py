@@ -3,11 +3,14 @@ Visibility scoring service.
 Computes composite visibility scores for aurora observation.
 """
 
+import logging
 import math
 from datetime import datetime, timezone
 
 from app.utils.astronomy import lunar_phase, lunar_position, solar_position
 from app.utils.constants import AURORA_WEIGHT, CLOUD_WEIGHT, DARKNESS_WEIGHT
+
+logger = logging.getLogger(__name__)
 
 
 def compute_visibility_score(lat, lon, ovation_data, cloud_data, darkness_data=None) -> dict:
@@ -18,6 +21,11 @@ def compute_visibility_score(lat, lon, ovation_data, cloud_data, darkness_data=N
     aurora = get_aurora_probability(lat, lon, ovation_data)
     cloud = get_cloud_score(cloud_data)
     darkness = darkness_data if darkness_data is not None else get_darkness_score(lat, lon, datetime.now(timezone.utc))
+
+    logger.info(
+        "[visibility_service] aurora=%.1f, cloud=%.1f, darkness=%.1f (weights: %.2f/%.2f/%.2f)",
+        aurora, cloud, darkness, AURORA_WEIGHT, CLOUD_WEIGHT, DARKNESS_WEIGHT,
+    )
 
     score = aurora * AURORA_WEIGHT + cloud * CLOUD_WEIGHT + darkness * DARKNESS_WEIGHT
     return {
@@ -92,9 +100,17 @@ def get_cloud_score(cloud_data) -> float:
     if not cloud_data:
         return 50  # assume moderate if no data
 
-    low = cloud_data.get("low") or 0
-    mid = cloud_data.get("mid") or 0
-    high = cloud_data.get("high") or 0
+    low = cloud_data.get("low")
+    mid = cloud_data.get("mid")
+    high = cloud_data.get("high")
+
+    # If all cloud values are missing, return moderate assumption
+    if low is None and mid is None and high is None:
+        return 50
+
+    low = low or 0
+    mid = mid or 0
+    high = high or 0
 
     # Weighted: low clouds weighted 2x
     weighted_pct = (low * 2 + mid * 1.5 + high * 0.5) / 4

@@ -61,6 +61,11 @@ class TestGetCloudScore:
     def test_none_returns_50(self):
         assert get_cloud_score(None) == 50
 
+    def test_all_null_values_returns_50(self):
+        """When weather API fails, all values are None — should return 50 (moderate)."""
+        score = get_cloud_score({"total": None, "low": None, "mid": None, "high": None})
+        assert score == 50
+
 
 class TestGetAuroraProbability:
     def test_returns_0_for_null_data(self):

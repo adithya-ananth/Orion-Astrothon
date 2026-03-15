@@ -97,6 +97,7 @@
 /* ── Side Panel (Visibility + alerts) ── */
 .side-panel {
   width: 320px;
+  max-height: 30vh;
   background: var(--bg-panel);
   backdrop-filter: var(--glass-blur);
   border-left: 1px solid var(--border);
@@ -361,7 +362,7 @@
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--border);
-    max-height: 40vh;
+    max-height: 30vh;
   }
 
   .dashboard-brand h1 {
