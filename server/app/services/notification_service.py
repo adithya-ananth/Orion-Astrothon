@@ -42,7 +42,10 @@ _subscribers: list[dict] = []
 # SMTP configuration — read from environment at import time so tests can
 # override via monkeypatch / env-var fixtures.
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+try:
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+except (ValueError, TypeError):
+    SMTP_PORT = 587
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASS = os.environ.get("SMTP_PASS", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)

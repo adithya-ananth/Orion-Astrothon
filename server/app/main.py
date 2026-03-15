@@ -57,12 +57,12 @@ def _compute_score_for_location(lat: float, lon: float) -> float:
     to a simple aurora-only score when weather data is unavailable (since
     we cannot ``await`` inside this sync helper).
     """
-    from datetime import datetime, timezone as _tz
+    from datetime import datetime, timezone
 
     cache = noaa_service.get_cache()
     ovation_data = cache["ovation"]["data"]
 
-    now = datetime.now(_tz.utc)
+    now = datetime.now(timezone.utc)
     darkness = visibility_service.get_darkness_score(lat, lon, now)
     aurora = visibility_service.get_aurora_probability(lat, lon, ovation_data)
 

@@ -14,7 +14,7 @@ export default function AlertConfig() {
   };
 
   const handleEmailSubscribe = async () => {
-    if (!email || !email.includes('@')) return;
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return;
     setEmailStatus('sending');
     try {
       await subscribeNotifications(lat, lon, email, alertConfig.scoreThreshold);
