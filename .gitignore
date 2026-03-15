@@ -5,5 +5,3 @@ __pycache__
 .env
 *.log
 *.db
-client/node_modules
-server/node_modules

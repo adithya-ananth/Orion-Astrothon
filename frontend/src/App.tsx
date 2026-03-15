@@ -8,6 +8,22 @@ import { Bell } from 'lucide-react'
 function App() {
   const [showMap, setShowMap] = useState(false)
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false)
+  const [location, setLocation] = useState({ lat: 60.0, lon: -100.0, name: 'Default Location' })
+
+  // Load saved location on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('aurora_location')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed && typeof parsed.lat === 'number') {
+            setLocation(parsed)
+        }
+      } catch (e) {
+        console.error("Failed to parse saved location")
+      }
+    }
+  }, [])
 
   // Lazy load map to avoid window undefined errors in SSR if we used Next,
   // but in Vite it just helps with initial load performance
@@ -64,12 +80,12 @@ function App() {
             </h3>
             <span className="text-xs bg-gray-900 px-2 py-1 rounded text-gray-400">Updates every 30 mins</span>
           </div>
-          {showMap ? <AuroraMap /> : <div className="h-[500px] bg-gray-900 rounded-xl animate-pulse"></div>}
+          {showMap ? <AuroraMap userLocation={location} /> : <div className="h-[500px] bg-gray-900 rounded-xl animate-pulse"></div>}
         </section>
 
         {/* Dashboard */}
         <section>
-          <Dashboard />
+          <Dashboard location={location} setLocation={setLocation} />
         </section>
 
       </main>

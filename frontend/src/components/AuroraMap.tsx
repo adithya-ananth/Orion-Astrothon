@@ -1,9 +1,24 @@
-import { useEffect } from 'react'
-import { MapContainer, TileLayer, useMap } from 'react-leaflet'
+import { useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, useMap, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import axios from 'axios'
 import TerminatorLayer from './TerminatorLayer'
+
+// Fix default leaflet marker icon issue in React
+import iconUrl from 'leaflet/dist/images/marker-icon.png'
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
+
+const customIcon = new L.Icon({
+  iconUrl,
+  iconRetinaUrl,
+  shadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
 
 function OvationLayer() {
   const map = useMap()
@@ -101,21 +116,63 @@ function OvationLayer() {
   return null
 }
 
-export default function AuroraMap() {
+function CenterMapOnLocation({ lat, lon }: { lat: number, lon: number }) {
+  const map = useMap()
+  const prevLoc = useRef<{lat: number, lon: number} | null>(null)
+
+  useEffect(() => {
+    // Only center if location actually changed to avoid annoying re-pans
+    if (prevLoc.current?.lat !== lat || prevLoc.current?.lon !== lon) {
+        map.setView([lat, lon], map.getZoom())
+        prevLoc.current = { lat, lon }
+    }
+  }, [lat, lon, map])
+  return null
+}
+
+interface AuroraMapProps {
+  userLocation: { lat: number; lon: number; name: string };
+}
+
+export default function AuroraMap({ userLocation }: AuroraMapProps) {
+  // To restrict the map from infinite wrapping, we can set maxBounds.
+  // We'll allow it to wrap exactly one full world (3 total visible worlds roughly)
+  // [-90, -180] to [90, 180] is one world.
+  // maxBounds from [-90, -540] to [90, 540] prevents scrolling infinitely.
+
+  const mapBounds: L.LatLngBoundsExpression = [
+    [-90, -540],
+    [90, 540]
+  ]
+
   return (
-    <div className="h-[500px] w-full rounded-xl overflow-hidden shadow-lg border border-gray-700 z-0">
+    <div className="h-[500px] w-full rounded-xl overflow-hidden shadow-lg border border-gray-700 z-0 relative">
       <MapContainer
-        center={[60, -100]}
+        center={[userLocation.lat, userLocation.lon]}
         zoom={3}
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%', backgroundColor: '#0f172a' }}
+        maxBounds={mapBounds}
+        maxBoundsViscosity={1.0}
+        minZoom={2}
       >
         <TileLayer
           attribution='&copy; CARTO'
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          noWrap={false}
         />
         <TerminatorLayer />
         <OvationLayer />
+
+        <CenterMapOnLocation lat={userLocation.lat} lon={userLocation.lon} />
+
+        <Marker position={[userLocation.lat, userLocation.lon]} icon={customIcon}>
+          <Popup className="bg-gray-800 text-black">
+            <b>{userLocation.name}</b><br/>
+            Lat: {userLocation.lat.toFixed(4)}<br/>
+            Lon: {userLocation.lon.toFixed(4)}
+          </Popup>
+        </Marker>
       </MapContainer>
     </div>
   )

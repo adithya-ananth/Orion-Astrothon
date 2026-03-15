@@ -2,25 +2,26 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { MapPin, Cloud, Moon, Zap, AlertTriangle, Navigation } from 'lucide-react'
 
-export default function Dashboard() {
+interface DashboardProps {
+  location: { lat: number; lon: number; name: string };
+  setLocation: React.Dispatch<React.SetStateAction<{ lat: number; lon: number; name: string }>>;
+}
+
+export default function Dashboard({ location, setLocation }: DashboardProps) {
   const [solarWind, setSolarWind] = useState<any>(null)
   const [visibility, setVisibility] = useState<any>(null)
-  const [location, setLocation] = useState({ lat: 60.0, lon: -100.0, name: 'Default Location' })
   const [inputLat, setInputLat] = useState('60.0')
   const [inputLon, setInputLon] = useState('-100.0')
   const [isLocating, setIsLocating] = useState(false)
   const [locationError, setLocationError] = useState('')
 
+  // Sync inputs when location prop changes
   useEffect(() => {
-    // Load saved location
-    const saved = localStorage.getItem('aurora_location')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      setLocation(parsed)
-      setInputLat(parsed.lat.toString())
-      setInputLon(parsed.lon.toString())
-    }
+    setInputLat(location.lat.toString())
+    setInputLon(location.lon.toString())
+  }, [location])
 
+  useEffect(() => {
     // Fetch solar wind initially and every minute
     const fetchSolarWind = () => {
       axios.get('http://localhost:8000/api/solar-wind')
