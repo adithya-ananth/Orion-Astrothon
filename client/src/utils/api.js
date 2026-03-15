@@ -1,4 +1,4 @@
-const BASE = '';
+const BASE = process.env.REACT_APP_API_URL || '';
 
 async function request(url, options = {}) {
   try {
