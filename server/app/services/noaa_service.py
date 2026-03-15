@@ -73,7 +73,7 @@ async def fetch_mag_data() -> dict:
         }
         return _cache["mag"]
     except Exception as exc:
-        logger.error("fetchMagData error: %s", exc)
+        logger.error("fetch_mag_data error: %s", exc)
         if _cache["mag"]["data"]:
             _cache["mag"]["stale"] = True
         return _cache["mag"]
@@ -86,7 +86,7 @@ async def fetch_plasma_data() -> dict:
         _cache["plasma"] = {"data": data, "timestamp": time.time(), "stale": False}
         return _cache["plasma"]
     except Exception as exc:
-        logger.error("fetchPlasmaData error: %s", exc)
+        logger.error("fetch_plasma_data error: %s", exc)
         if _cache["plasma"]["data"]:
             _cache["plasma"]["stale"] = True
         return _cache["plasma"]
@@ -99,7 +99,7 @@ async def fetch_ovation_data() -> dict:
         _cache["ovation"] = {"data": data, "timestamp": time.time(), "stale": False}
         return _cache["ovation"]
     except Exception as exc:
-        logger.error("fetchOvationData error: %s", exc)
+        logger.error("fetch_ovation_data error: %s", exc)
         if _cache["ovation"]["data"]:
             _cache["ovation"]["stale"] = True
         return _cache["ovation"]
@@ -112,7 +112,7 @@ async def fetch_kp_index() -> dict:
         _cache["kp"] = {"data": data, "timestamp": time.time()}
         return _cache["kp"]
     except Exception as exc:
-        logger.error("fetchKpIndex error: %s", exc)
+        logger.error("fetch_kp_index error: %s", exc)
         return _cache["kp"]
 
 
@@ -123,7 +123,7 @@ async def fetch_forecast() -> dict:
         _cache["forecast"] = {"data": data, "timestamp": time.time()}
         return _cache["forecast"]
     except Exception as exc:
-        logger.error("fetchForecast error: %s", exc)
+        logger.error("fetch_forecast error: %s", exc)
         return _cache["forecast"]
 
 
@@ -134,7 +134,7 @@ async def fetch_alerts() -> dict:
         _cache["alerts"] = {"data": data, "timestamp": time.time()}
         return _cache["alerts"]
     except Exception as exc:
-        logger.error("fetchAlerts error: %s", exc)
+        logger.error("fetch_alerts error: %s", exc)
         return _cache["alerts"]
 
 

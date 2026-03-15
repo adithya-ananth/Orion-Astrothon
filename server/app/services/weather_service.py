@@ -57,7 +57,7 @@ async def fetch_cloud_cover(lat: float, lon: float) -> dict:
         _weather_cache[key] = {"data": data, "timestamp": now}
         return data
     except Exception as exc:
-        logger.error("fetchCloudCover error: %s", exc)
+        logger.error("fetch_cloud_cover error: %s", exc)
         # Return cached data if available (even if stale)
         if key in _weather_cache:
             return _weather_cache[key]["data"]
