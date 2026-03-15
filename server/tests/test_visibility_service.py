@@ -15,7 +15,7 @@ class TestComputeVisibilityScore:
     def test_composite_between_0_and_100(self):
         ovation_data = {
             "coordinates": [
-                {"Latitude": 65, "Longitude": 25, "Aurora": 80},
+                [25, 65, 80],
             ],
         }
         cloud_data = {"total": 20, "low": 10, "mid": 10, "high": 20}
@@ -31,7 +31,7 @@ class TestComputeVisibilityScore:
     def test_applies_correct_weights(self):
         result = compute_visibility_score(
             65, 25,
-            {"coordinates": [{"Latitude": 65, "Longitude": 25, "Aurora": 100}]},
+            {"coordinates": [[25, 65, 100]]},
             {"total": 0, "low": 0, "mid": 0, "high": 0},
             100,
         )
@@ -41,7 +41,7 @@ class TestComputeVisibilityScore:
     def test_low_score_for_worst_conditions(self):
         result = compute_visibility_score(
             0, 0,
-            {"coordinates": [{"Latitude": 0, "Longitude": 0, "Aurora": 0}]},
+            {"coordinates": [[0, 0, 0]]},
             {"total": 100, "low": 100, "mid": 100, "high": 100},
             0,
         )
@@ -74,9 +74,9 @@ class TestGetAuroraProbability:
     def test_finds_nearest_grid_point(self):
         data = {
             "coordinates": [
-                {"Latitude": 64, "Longitude": 24, "Aurora": 30},
-                {"Latitude": 65, "Longitude": 25, "Aurora": 75},
-                {"Latitude": 66, "Longitude": 26, "Aurora": 40},
+                [24, 64, 30],
+                [25, 65, 75],
+                [26, 66, 40],
             ],
         }
         result = get_aurora_probability(65.1, 25.1, data)

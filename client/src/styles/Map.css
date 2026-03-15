@@ -112,6 +112,11 @@
   stroke-width: 1;
 }
 
+/* OVATION image overlay */
+.ovation-image-overlay {
+  image-rendering: pixelated;
+}
+
 /* Map legend */
 .map-legend {
   position: absolute;
