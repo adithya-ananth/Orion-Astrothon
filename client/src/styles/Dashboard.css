@@ -97,7 +97,6 @@
 /* ── Side Panel (Visibility + alerts) ── */
 .side-panel {
   width: 320px;
-  max-height: 30vh;
   background: var(--bg-panel);
   backdrop-filter: var(--glass-blur);
   border-left: 1px solid var(--border);
@@ -321,14 +320,13 @@
 /* ── Status Bar ── */
 .status-bar {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   padding: 4px 12px;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
   font-size: 11px;
   color: var(--text-secondary);
-  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  z-index: 1002;
 }
 
 .status-item {
@@ -374,3 +372,5 @@
     gap: 8px;
   }
 }
+
+

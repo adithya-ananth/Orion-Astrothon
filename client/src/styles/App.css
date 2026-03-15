@@ -69,6 +69,18 @@ body {
   position: relative;
 }
 
+/* Sidebar */
+.bottom-panels {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+@media (min-height: 600px) and (min-width: 1024px) {
+  .bottom-panels {
+    max-height: 30vh;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

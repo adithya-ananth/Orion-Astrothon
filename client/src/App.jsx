@@ -69,8 +69,10 @@ function AppContent() {
         <AuroraMap lat={lat} lon={lon} />
         <VisibilityPanel lat={lat} lon={lon} />
       </div>
-      <AlertConfig />
-      <KpForecast />
+      <div className="bottom-panels">
+        <AlertConfig />
+        <KpForecast />
+      </div>
       <StatusBar />
       <AlertMonitor />
     </div>
