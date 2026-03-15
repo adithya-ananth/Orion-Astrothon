@@ -38,12 +38,14 @@ function ClickHandler({ onMapClick }) {
   return null;
 }
 
+const MIN_VISIBLE_AURORA_PROBABILITY = 2;
+
 function OvationOverlay({ coordinates }) {
   if (!coordinates || coordinates.length === 0) return null;
 
   return coordinates.map((pt, i) => {
     const prob = pt.probability ?? pt.aurora ?? 0;
-    if (prob <= 2) return null;
+    if (prob <= MIN_VISIBLE_AURORA_PROBABILITY) return null;
     return (
       <CircleMarker
         key={i}

@@ -14,7 +14,7 @@ export function getTerminatorGeoJSON(date = new Date()) {
 
   // Determine which side is night by checking solar position at (0,0)
   const sunPos = SunCalc.getPosition(date, 0, 0);
-  const sunIsNorth = sunPos.altitude > 0 ? false : true;
+  const sunIsNorth = sunPos.altitude <= 0;
 
   // Build the night polygon
   const nightPoly = [];
@@ -45,19 +45,21 @@ function getTerminatorLatitude(lng, date) {
   let lo = -90;
   let hi = 90;
 
+  // Ensure lo is in shadow and hi is in sunlight for binary search
+  const posLo = SunCalc.getPosition(date, lo, lng);
+  const posHi = SunCalc.getPosition(date, hi, lng);
+  if (posLo.altitude > 0 && posHi.altitude <= 0) {
+    // Swap so lo=shadow, hi=sunlight
+    [lo, hi] = [hi, lo];
+  }
+
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
     const pos = SunCalc.getPosition(date, mid, lng);
     if (pos.altitude > 0) {
-      // Sun is up at mid — move toward where it sets
-      const posHi = SunCalc.getPosition(date, hi, lng);
-      if (posHi.altitude > 0) {
-        lo = mid;
-      } else {
-        lo = mid;
-      }
+      hi = mid; // mid is sunlit, move hi down
     } else {
-      hi = mid;
+      lo = mid; // mid is dark, move lo up
     }
   }
   return (lo + hi) / 2;

@@ -72,7 +72,7 @@ export default function SolarWindDashboard() {
       />
       <Widget
         label="Delay"
-        value={sw.delay != null ? Math.round(sw.delay) : null}
+        value={sw.delay != null ? Math.round(sw.delay / 60) : null}
         unit="min"
         loading={sw.loading}
       />
