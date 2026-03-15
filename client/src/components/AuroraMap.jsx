@@ -109,36 +109,43 @@ function renderOvationImage(coordinates) {
 /**
  * Canvas-based OVATION overlay rendered as a Leaflet ImageOverlay.
  * Produces a smooth aurora heat-map instead of individual dot markers.
+ * Duplicates the overlay across 3 map widths to cover panning.
  */
 function OvationOverlay({ coordinates }) {
   const map = useMap();
-  const overlayRef = useRef(null);
+  const overlaysRef = useRef([]);
 
   // Update overlay image when coordinates change
   useEffect(() => {
     if (!coordinates || coordinates.length === 0) return;
 
     const dataUrl = renderOvationImage(coordinates);
-    const bounds = L.latLngBounds([[-90, -180], [90, 180]]);
+    
+    // Bounds for center, left (-360), and right (+360) copies
+    const boundsList = [
+      [[-90, -180], [90, 180]],       // Center
+      [[-90, -540], [90, -180]],      // Left copy
+      [[-90, 180], [90, 540]]         // Right copy
+    ];
 
-    if (overlayRef.current) {
-      overlayRef.current.setUrl(dataUrl);
+    if (overlaysRef.current.length > 0) {
+      overlaysRef.current.forEach(layer => layer.setUrl(dataUrl));
     } else {
-      overlayRef.current = L.imageOverlay(dataUrl, bounds, {
-        opacity: 0.85,
-        interactive: false,
-        className: 'ovation-image-overlay',
-      }).addTo(map);
+      overlaysRef.current = boundsList.map(bounds => 
+        L.imageOverlay(dataUrl, bounds, {
+          opacity: 0.85,
+          interactive: false,
+          className: 'ovation-image-overlay',
+        }).addTo(map)
+      );
     }
   }, [map, coordinates]);
 
   // Clean up only on unmount
   useEffect(() => {
     return () => {
-      if (overlayRef.current) {
-        map.removeLayer(overlayRef.current);
-        overlayRef.current = null;
-      }
+      overlaysRef.current.forEach(layer => map.removeLayer(layer));
+      overlaysRef.current = [];
     };
   }, [map]);
 
@@ -198,11 +205,18 @@ export default function AuroraMap({ lat, lon }) {
       <MapContainer
         center={center}
         zoom={4}
+        minZoom={2} // Prevent seeing gray borders
+        maxBounds={[[-90, -540], [90, 540]]} // Limit panning to ~3 worlds wide
+        maxBoundsViscosity={1.0}
         className="map-container"
         zoomControl={true}
         attributionControl={true}
       >
-        <TileLayer url={DARK_TILES} attribution={TILE_ATTR} />
+        <TileLayer 
+          url={DARK_TILES} 
+          attribution={TILE_ATTR} 
+          noWrap={false} // Allow tiles to wrap naturally
+        />
 
         {/* Day/Night terminator */}
         <GeoJSON data={terminator} style={terminatorStyle} />
