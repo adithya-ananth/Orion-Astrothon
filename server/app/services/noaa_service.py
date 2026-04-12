@@ -4,6 +4,7 @@ Polls NOAA SWPC endpoints and caches results in memory.
 """
 
 import logging
+import json
 import re
 import time
 
@@ -34,22 +35,38 @@ _cache: dict = {
 }
 
 
+def _parse_json_resilient(text: str, url: str):
+    """Parse JSON while tolerating extra trailing payload after first valid document."""
+    payload = text.strip()
+    if not payload:
+        return None
+
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        parsed, end_idx = decoder.raw_decode(payload)
+        trailing = payload[end_idx:].strip()
+        if trailing:
+            logger.warning(
+                "Trailing data detected in NOAA response for %s; using first JSON document only",
+                url,
+            )
+        return parsed
+
+
 async def _fetch_json(url: str, timeout: float = 20.0):
     """Generic fetch helper with timeout and error handling."""
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.get(url, timeout=timeout)
             resp.raise_for_status()
-            
-            # Additional check for non-JSON content or multiple JSON objects
-            text = resp.text.strip()
-            if not text:
+
+            text = resp.text
+            if not text or not text.strip():
                 return None
-            
-            # Simple check if there's possibly extra data
-            # Real fix would require substantial parsing logic, 
-            # but usually it's just a clean JSON we want.
-            return resp.json()
+
+            return _parse_json_resilient(text, url)
         except Exception as e:
             logger.error(f"Error fetching {url}: {e}")
             raise

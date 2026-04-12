@@ -12,6 +12,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/visibility", tags=["visibility"])
 
 
+def _extract_latest_kp_value(kp_data) -> float:
+    """Extract latest Kp from NOAA cache data across known row formats."""
+    if not kp_data or not isinstance(kp_data, list) or len(kp_data) <= 1:
+        return 0.0
+
+    last_row = kp_data[-1]
+    try:
+        if isinstance(last_row, (list, tuple)) and len(last_row) > 1:
+            return float(last_row[1])
+
+        if isinstance(last_row, dict):
+            for key in ("kp", "kp_index", "kpIndex", "kp_value", "value", 1, "1"):
+                if key in last_row:
+                    return float(last_row[key])
+    except (TypeError, ValueError):
+        return 0.0
+
+    return 0.0
+
+
 @router.get("/score")
 async def get_score(lat: float = Query(...), lon: float = Query(...)):
     try:
@@ -28,16 +48,7 @@ async def get_score(lat: float = Query(...), lon: float = Query(...)):
         )
 
         # compute Kp from cache
-        kp_val = 0.0
-        kp_data = cache["kp"]["data"]
-        if kp_data and isinstance(kp_data, list) and len(kp_data) > 1:
-            try:
-                # The last row is the most recent
-                # Format: [time_tag, kp_index, a_running, station_count]
-                last_row = kp_data[-1]
-                kp_val = float(last_row[1])
-            except (IndexError, ValueError):
-                pass
+        kp_val = _extract_latest_kp_value(cache["kp"]["data"])
 
         photography_settings = photography_service.get_recommended_settings(kp_val)
 
