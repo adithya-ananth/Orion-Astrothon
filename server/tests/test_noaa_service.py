@@ -1,5 +1,7 @@
 """Tests for NOAA service JSON parsing helpers."""
 
+import json
+
 import pytest
 
 from app.services.noaa_service import _parse_json_resilient
@@ -22,5 +24,5 @@ class TestParseJsonResilient:
         assert _parse_json_resilient("   \n\t", "https://example.test/data.json") is None
 
     def test_raises_on_non_json(self):
-        with pytest.raises(Exception):
+        with pytest.raises(json.JSONDecodeError):
             _parse_json_resilient("not-json", "https://example.test/data.json")
